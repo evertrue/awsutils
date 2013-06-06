@@ -22,6 +22,10 @@ ec2listmachines
 ---------------
 Show a list of all EC2 instances in your account.
 
+ec2info
+-------
+Display very detailed info about a single instance (-s/--short for a concise version).
+
 ## Contributing
 
 1. Fork it
