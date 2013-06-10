@@ -7,10 +7,12 @@ module AwsUtils
   class Ec2AddSecurityGroup < Ec2SecurityGroup
 
     def add_group
-      connection.create_security_group( 
+      res = connection.create_security_group( 
         @opts[:security_group], 
-        "#{@opts[:security_group]} created by #{ENV['USER']}" 
+        "#{@opts[:security_group]} created by #{ENV['USER']}",
+        @opts[:vpc_id]
       )
+      @new_group_id = res.data[:body]["groupId"]
     end
 
     def generate_rule_opts( rule )
@@ -75,7 +77,7 @@ module AwsUtils
       end
 
       output = {
-        "dest" => rule["dest"],
+        "dest" => rule['dest'],
         "options" => options
       }
 
@@ -85,16 +87,33 @@ module AwsUtils
 
       compiled_rules.each do |rule|
 
-        if rule["IpPermissions"]["CidrIp"] =~ /\./
-          puts "Adding CIDR Rule: " + rule['options'].inspect
-        else
-          puts "Adding Group Rule: " + rule['options'].inspect
-        end
+        begin
 
-        connection.authorize_security_group_ingress( 
-          rule["dest"], 
-          rule["options"] 
-        )
+          # Amazon EC2 is neurotic about using group IDs with VPCs so
+          # we'll use the group ID whenever possible. The reason we add
+          # it here instead of when we compile the rule is so that we
+          # can do rule compilation without first creating a new group.
+
+          dest_group_id = connection.security_groups.get(rule["dest"]).group_id
+
+          rule["options"]["GroupId"] = dest_group_id
+
+          puts "Adding Rule: " + rule['options'].inspect
+        
+          connection.authorize_security_group_ingress( 
+            dest_group_id, 
+            rule["options"] 
+          )
+
+        rescue Excon::Errors::BadRequest => e
+
+          puts "Request:"
+          puts "dest_group_id: " + dest_group_id.inspect
+          puts "rule[\"options\"]: " + rule['options'].inspect
+
+          raise e
+
+        end
 
       end
     end
@@ -117,6 +136,8 @@ module AwsUtils
           compiled_rules << generate_rule_opts( rule )
         end
 
+        compiled_rules
+
       end
 
     end
@@ -132,6 +153,8 @@ module AwsUtils
         puts "Group #{@opts[:security_group]} already exists!"
         exit 1
       end
+
+      compiled_rules
         
       add_group
 

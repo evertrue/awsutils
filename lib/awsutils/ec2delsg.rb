@@ -86,7 +86,8 @@ module AwsUtils
       delete_group_refs
 
       puts "Deleting group #{@opts[:security_group]}."
-      connection.delete_security_group( @opts[:security_group] )
+      connection.delete_security_group( nil, 
+                                       connection.security_groups.get(@opts[:security_group]).group_id )
 
     end
 

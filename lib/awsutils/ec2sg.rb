@@ -75,8 +75,9 @@ module AwsUtils
         opts[:security_group] = args[0]
       end
 
-      opts[:base_rules_file] = args[1] || 
-        ENV['EC2_BASE_RULES'] ||
+      opts[:vpc_id] = args[1]
+
+      opts[:base_rules_file] = ENV['EC2_BASE_RULES'] ||
         ENV['HOME'] + "/.ec2baserules.yml"
 
       return opts
