@@ -10,4 +10,5 @@ require 'rubygems'
 require 'awsutils/version'
 require 'awsutils/ec2addsg'
 
-AwsUtils::Ec2AddSecurityGroup.new
+sg = AwsUtils::Ec2AddSecurityGroup.new( ARGV )
+sg.run
