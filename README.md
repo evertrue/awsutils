@@ -32,12 +32,12 @@ Create an EC2 security group with a set of pre-defined (from a YAML file) rules.
 
 ```YAML
   ---
-  - source: 76.19.192.82/32
+  - source: 1.2.3.4/32
     proto: tcp
     port: !ruby/range
       begin: 22
       end: 22
-    source: 75.147.22.123/32
+    source: sample_group
     proto: tcp
     port: !ruby/range
       begin: 22

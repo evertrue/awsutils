@@ -8,26 +8,20 @@ module AwsUtils
   class Ec2SecurityGroup
 
     def connection
-      @connection ||= begin
-        connection = Fog::Compute.new(:provider => 'AWS')
-      end
+      @connection ||= Fog::Compute.new(:provider => 'AWS')
     end
 
-    def is_group_in_use
+    def assigned?
 
       servers_using_group = Array.new
 
       connection.servers.each do |server|
         if (server.state != "terminated") && 
-          server.groups.include?( @target_group )
+          server.groups.include?( @opts[:security_group] )
           if defined?server.tags.has_key?("Name")
-
             servers_using_group << server.tags["Name"]
-
           else
-
             servers_using_group << server.id
-
           end
         end
       end
@@ -37,42 +31,55 @@ module AwsUtils
         print "The following servers are still using this group: "
         puts servers_using_group.join(",")
         
-        exit 1
-
-      end
-
-    end
-
-    def does_group_exist
-
-      if ! connection.security_groups.get( @target_group )
-
-        puts "Group does not exist"
-
-        exit 1
-
-      end
-
-    end
-
-    def parse_opts
-
-      if (ARGV[0] == nil) or (ARGV[0] == "")
-
-        puts "Please specify a security group"
-        exit 1
-
-      elsif ! ENV['AWS_OWNER_ID']
-
-        puts "Please set the AWS_OWNER_ID environment variable."
-        exit 1
+        return true
 
       else
 
-        @target_group = ARGV[0]
-        OWNER_GROUP_ID = ENV['AWS_OWNER_ID']
+        return false
 
       end
+
+    end
+
+    def exist?
+      if ! current_groups.include?( @opts[:security_group] )
+        return false
+      else
+        return true
+      end
+    end
+
+    def current_groups
+      @current_groups ||= begin
+
+        current_groups = connection.security_groups.map{|g|
+          [g.name,g.group_id]
+        }.flatten.reject{|g| g == nil }.uniq
+        
+      end
+    end
+
+    def self.parse_opts( args )
+
+      opts = {}
+
+      if ! ENV['AWS_OWNER_ID']
+        raise "Environment variable AWS_OWNER_ID is not set!"
+      else
+        opts[:owner_group_id] = ENV['AWS_OWNER_ID']
+      end
+
+      if ! args[0] || args.class != Array
+        raise ArgumentError, "Please specify a security group!"
+      else
+        opts[:security_group] = args[0]
+      end
+
+      opts[:base_rules_file] = args[1] || 
+        ENV['EC2_BASE_RULES'] ||
+        ENV['HOME'] + "/.ec2baserules.yml"
+
+      return opts
 
     end
 

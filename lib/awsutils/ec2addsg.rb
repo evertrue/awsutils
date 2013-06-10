@@ -7,28 +7,37 @@ module AwsUtils
   class Ec2AddSecurityGroup < Ec2SecurityGroup
 
     def add_group
-
       connection.create_security_group( 
-        @target_group, 
-        "#{@target_group} created by #{ENV['USER']}" 
+        @opts[:security_group], 
+        "#{@opts[:security_group]} created by #{ENV['USER']}" 
       )
-
     end
 
-    def create_rule( rule )
+    def generate_rule_opts( rule )
+
+      if ! @opts[:security_group]
+        raise "@opts[:security_group] not defined!"
+      end
+
+      if rule['source'] && rule['dest']
+        raise "One of the predefined rules has both a source " +
+          "and a destination already defined: " + rule.inspect
+      end
 
       if ! rule['source']
-        rule['source'] = @target_group
+        rule['source'] = @opts[:security_group]
+      elsif rule["source"] !~ /\./ && 
+        ! current_groups.include?( rule['source'] )
+        raise "Group #{rule['source']} specified as part of rule: #{rule.inspect} does not exist"
       end
 
       if ! rule['dest']
-        rule['dest'] = @target_group
+        rule['dest'] = @opts[:security_group]
+      elsif ! current_groups.include?( rule['dest'] )
+        raise "Group #{rule['dest']} specified as part of rule: #{rule.inspect} does not exist"
       end
 
       if rule["source"] =~ /\./
-
-        puts "Adding CIDR Rule: { Target: #{rule["dest"]}, Source: #{rule["source"]}, " +
-          "Ports: #{rule["proto"]}/#{rule["port"].to_s} }"
 
         options = {
           "IpPermissions" => [
@@ -46,9 +55,6 @@ module AwsUtils
 
       else
 
-        puts "Adding Group Rule: { Target: #{rule["dest"]}, Source: #{rule["source"]}, " +
-          "Ports: #{rule["proto"]}/#{rule["port"].to_s} }"
-
         options = {
           "IpPermissions" => [
             {
@@ -56,7 +62,7 @@ module AwsUtils
               "Groups" => [
                 {
                   "GroupName" => rule["source"],
-                  "UserId" => GROUP_OWNER_ID
+                  "UserId" => @opts[:owner_group_id]
                 }
               ],
               "IpProtocol" => rule["proto"],
@@ -67,34 +73,69 @@ module AwsUtils
         }
 
       end
-      
-      connection.authorize_security_group_ingress( 
-        rule["dest"], 
-        options 
-      )
+
+      output = {
+        "dest" => rule["dest"],
+        "options" => options
+      }
 
     end
 
-    def initialize
+    def save
 
-      parse_opts
+      compiled_rules.each do |rule|
 
-      base_rules = ARGV[1] || 
-        ENV['EC2_BASE_RULES'] ||
-        ENV['HOME'] + "/.ec2baserules.yml"
+        if rule["IpPermissions"]["CidrIp"] =~ /\./
+          puts "Adding CIDR Rule: " + rule['options'].inspect
+        else
+          puts "Adding Group Rule: " + rule['options'].inspect
+        end
 
-      if ! File.exist?(base_rules)
-        puts "File #{base_rules} does not exist!"
+        connection.authorize_security_group_ingress( 
+          rule["dest"], 
+          rule["options"] 
+        )
+
+      end
+    end
+
+    def initialize( args )
+      @opts = Ec2SecurityGroup.parse_opts( args )
+    end
+
+    def name
+      @opts[:security_group]
+    end
+
+    def compiled_rules
+
+      @compiled_rules ||= begin
+
+        compiled_rules = []
+
+        YAML.load_file(@opts[:base_rules_file]).each do |rule|
+          compiled_rules << generate_rule_opts( rule )
+        end
+
+      end
+
+    end
+
+    def run
+
+      if ! File.exist?(@opts[:base_rules_file])
+        puts "File #{@opts[:base_rules_file]} does not exist!"
         exit 1
       end
-      
+
+      if exist?
+        puts "Group #{@opts[:security_group]} already exists!"
+        exit 1
+      end
+        
       add_group
 
-      YAML.load_file(base_rules).each do |new_rule|
-
-        create_rule( new_rule )
-
-      end
+      save
 
     end
 
