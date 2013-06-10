@@ -26,6 +26,29 @@ ec2info
 -------
 Display very detailed info about a single instance (-s/--short for a concise version).
 
+ec2addsg
+--------
+Create an EC2 security group with a set of pre-defined (from a YAML file) rules.  Here's an example YAML file:
+
+```YAML
+  ---
+  - source: 76.19.192.82/32
+    proto: tcp
+    port: !ruby/range
+      begin: 22
+      end: 22
+    source: 75.147.22.123/32
+    proto: tcp
+    port: !ruby/range
+      begin: 22
+      end: 22
+  - dest: eherot_test
+    proto: tcp
+    port: !ruby/range
+      begin: 22
+      end: 22
+```
+
 ## Contributing
 
 1. Fork it
