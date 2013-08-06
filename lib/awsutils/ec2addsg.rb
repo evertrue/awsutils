@@ -7,19 +7,17 @@ module AwsUtils
   class Ec2AddSecurityGroup < Ec2SecurityGroup
 
     def add_group
+
       res = connection.create_security_group( 
         @opts[:security_group], 
         "#{@opts[:security_group]} created by #{ENV['USER']}",
         @opts[:vpc_id]
       )
+      puts "New group ID: " + res.data[:body]["groupId"]
       @new_group_id = res.data[:body]["groupId"]
     end
 
     def generate_rule_opts( rule )
-
-      if ! @opts[:security_group]
-        raise "@opts[:security_group] not defined!"
-      end
 
       if rule['source'] && rule['dest']
         raise "One of the predefined rules has both a source " +
@@ -27,14 +25,14 @@ module AwsUtils
       end
 
       if ! rule['source']
-        rule['source'] = @opts[:security_group]
+        rule['source'] = @new_group_id
       elsif rule["source"] !~ /\./ && 
         ! current_groups.include?( rule['source'] )
         raise "Group #{rule['source']} specified as part of rule: #{rule.inspect} does not exist"
       end
 
       if ! rule['dest']
-        rule['dest'] = @opts[:security_group]
+        rule['dest'] = @new_group_id
       elsif ! current_groups.include?( rule['dest'] )
         raise "Group #{rule['dest']} specified as part of rule: #{rule.inspect} does not exist"
       end
@@ -57,7 +55,7 @@ module AwsUtils
 
         ip_permissions["Groups"] = [
           {
-            "GroupName" => rule["source"],
+            "GroupId" => rule["source"],
             "UserId" => @opts[:owner_group_id]
           }
         ]
@@ -79,6 +77,8 @@ module AwsUtils
       compiled_rules.each do |rule|
 
         begin
+
+          puts "Rule inspect: #{rule.inspect}"
 
           # Amazon EC2 is neurotic about using group IDs with VPCs so
           # we'll use the group ID whenever possible. The reason we add
@@ -123,7 +123,22 @@ module AwsUtils
 
         compiled_rules = []
 
-        YAML.load_file(@opts[:base_rules_file]).each do |rule|
+        rules_data = YAML.load_file(@opts[:base_rules_file])
+
+        if @opts[:environment]
+          if ! rules_data["env"]
+            raise "Environment #{@opts[:environment]} not present in rules file (#{@opts[:base_rules_file]})."
+          else
+            rules_env_data = rules_data["env"][@opts[:environment]]
+          end
+        elsif rules_data.class != Array
+          raise "base_rules_file is an environment-keyed file but you did " +
+            "not specify an environment."
+        else
+          rules_env_data = rules_data
+        end
+
+        rules_env_data.each do |rule|
           compiled_rules << generate_rule_opts( rule )
         end
 
@@ -144,10 +159,20 @@ module AwsUtils
         puts "Group #{@opts[:security_group]} already exists!"
         exit 1
       end
-
-      compiled_rules
         
       add_group
+
+      begin
+
+        compiled_rules
+
+      rescue Exception => e
+
+        puts "Error rescued.  Deleting newly created group."
+        connection.delete_security_group( nil, @new_group_id )
+        raise e
+
+      end
 
       save
 
