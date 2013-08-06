@@ -64,8 +64,6 @@ module AwsUtils
 
       if ! ENV['AWS_OWNER_ID']
         raise "Environment variable AWS_OWNER_ID is not set!"
-      else
-        opts[:owner_group_id] = ENV['AWS_OWNER_ID']
       end
 
       @opts = Trollop::options do
@@ -73,6 +71,7 @@ module AwsUtils
         opt :vpc_id, "New Group VPC ID", :short => 'v', :type => String
         opt :base_rules_file, "Base rules YAML file", :short => 'r', :default => ENV['EC2_BASE_RULES'] || ENV['HOME'] + "/.ec2baserules.yml"
         opt :description, "New Group Description", :short => 'd', :type => String
+        opt :owner_group_id, "Owner Group ID", :short => 'o', :default => ENV['AWS_OWNER_ID']
       end
 
     end
