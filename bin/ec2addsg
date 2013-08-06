@@ -10,5 +10,5 @@ require 'rubygems'
 require 'awsutils/version'
 require 'awsutils/ec2addsg'
 
-sg = AwsUtils::Ec2AddSecurityGroup.new( ARGV )
+sg = AwsUtils::Ec2AddSecurityGroup.new
 sg.run

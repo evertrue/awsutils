@@ -39,42 +39,33 @@ module AwsUtils
         raise "Group #{rule['dest']} specified as part of rule: #{rule.inspect} does not exist"
       end
 
+      ip_permissions = { "IpProtocol" => rule["proto"] }
+
+      if rule["port"]
+
+        ip_permissions["FromPort"] = rule["port"].first.to_s
+        ip_permissions["ToPort"] = rule["port"].last.to_s
+
+      end
+
       if rule["source"] =~ /\./
 
-        options = {
-          "IpPermissions" => [
-            {
-              "FromPort" => rule["port"].first.to_s,
-              "Groups" => [],
-              "IpProtocol" => rule["proto"],
-              "IpRanges" => [
-                "CidrIp" => rule["source"]
-              ],
-              "ToPort" => rule["port"].last.to_s
-            }
-          ]
-        }
+        ip_permissions["Groups"] = []
+        ip_permissions["IpRanges"] = [ "CidrIp" => rule["source"] ]
 
       else
 
-        options = {
-          "IpPermissions" => [
-            {
-              "FromPort" => rule["port"].first.to_s,
-              "Groups" => [
-                {
-                  "GroupName" => rule["source"],
-                  "UserId" => @opts[:owner_group_id]
-                }
-              ],
-              "IpProtocol" => rule["proto"],
-              "IpRanges" => [],
-              "ToPort" => rule["port"].last.to_s
-            }
-          ]
-        }
+        ip_permissions["Groups"] = [
+          {
+            "GroupName" => rule["source"],
+            "UserId" => @opts[:owner_group_id]
+          }
+        ]
+        ip_permissions["IpRanges"] = []
 
       end
+
+      options = { "IpPermissions" => [ ip_permissions ] }
 
       output = {
         "dest" => rule['dest'],
@@ -118,8 +109,8 @@ module AwsUtils
       end
     end
 
-    def initialize( args )
-      @opts = Ec2SecurityGroup.parse_opts( args )
+    def initialize
+      @opts = Ec2SecurityGroup.parse_opts
     end
 
     def name

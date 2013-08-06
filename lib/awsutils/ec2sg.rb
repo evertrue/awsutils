@@ -1,6 +1,7 @@
 #!/usr/bin/ruby
 
 require 'rubygems'
+require 'trollop'
 require 'fog'
 
 module AwsUtils
@@ -59,9 +60,7 @@ module AwsUtils
       end
     end
 
-    def self.parse_opts( args )
-
-      opts = {}
+    def self.parse_opts
 
       if ! ENV['AWS_OWNER_ID']
         raise "Environment variable AWS_OWNER_ID is not set!"
@@ -69,18 +68,12 @@ module AwsUtils
         opts[:owner_group_id] = ENV['AWS_OWNER_ID']
       end
 
-      if ! args[0] || args.class != Array
-        raise ArgumentError, "Please specify a security group!"
-      else
-        opts[:security_group] = args[0]
+      @opts = Trollop::options do
+        opt :security_group, "New Security Group Name", :short => 'N', :type => String, :required => true
+        opt :vpc_id, "New Group VPC ID", :short => 'v', :type => String
+        opt :base_rules_file, "Base rules YAML file", :short => 'r', :default => ENV['EC2_BASE_RULES'] || ENV['HOME'] + "/.ec2baserules.yml"
+        opt :description, "New Group Description", :short => 'd', :type => String
       end
-
-      opts[:vpc_id] = args[1]
-
-      opts[:base_rules_file] = ENV['EC2_BASE_RULES'] ||
-        ENV['HOME'] + "/.ec2baserules.yml"
-
-      return opts
 
     end
 
