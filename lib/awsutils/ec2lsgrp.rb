@@ -12,7 +12,13 @@ module AwsUtils
 		end
 
 		def lookup
-			connection.security_groups.get(@group)
+			if @group =~ /^sg-/
+				group_name = get_group_name(@group)
+			else
+				group_name = @group
+			end
+
+			return connection.security_groups.get(group_name)
 		end
 
 		def msg_pair( key, value )
@@ -22,10 +28,10 @@ module AwsUtils
 		def perms_out( direction, perms )
 			puts "#{direction.upcase} RULES"
 			perms.to_enum.with_index(1) do |perm,index|
-				
+
 				print "  #{index} "
 				if perm['groups'].count > 0
-					groups_arr = perm['groups'].map{|g| g['groupId']}
+					groups_arr = perm['groups'].map{|g| "#{g['groupId']} (#{get_group_name(g['groupId'])})"}
 					print "groups: #{groups_arr.join(', ')}; "
 				end
 				if perm['ipRanges'].count > 0
@@ -41,6 +47,11 @@ module AwsUtils
 
 		def run
 			g = lookup
+
+			if g.nil?
+				puts "No group found by that name."
+				exit 1
+			end
 
 			msg_pair('ID', g.group_id)
 			msg_pair('NAME', g.name)
@@ -58,6 +69,23 @@ module AwsUtils
 				exit 1
 			end
 			@group = args[0]
+		end
+
+		private
+
+		def allgroups
+			if ! @allgroups
+				@allgroups = {}
+				connection.describe_security_groups().data[:body]["securityGroupInfo"].select{|g| g["groupName"]}.each do |g|
+						@allgroups[g["groupId"]] = g["groupName"]
+				end
+			end
+			return @allgroups
+		end
+
+
+		def get_group_name( id )
+			allgroups[id]
 		end
 
 	end
