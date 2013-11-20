@@ -6,29 +6,29 @@ module AwsUtils
 
   class Ec2AddSecurityGroup < Ec2SecurityGroup
 
-    def add_group
+    def g_obj
 
-      res = connection.create_security_group( 
-        @opts[:security_group], 
-        "#{@opts[:security_group]} created by #{ENV['USER']}",
-        @opts[:vpc_id]
-      )
-      puts "New group ID: " + res.data[:body]["groupId"]
-      @new_group_id = res.data[:body]["groupId"]
-    end
-
-    def generate_rule_opts( rule )
-
-      if rule['source'] && rule['dest']
-        raise "One of the predefined rules has both a source " +
-          "and a destination already defined: " + rule.inspect
+      @g_obj ||= begin
+          connection.security_groups.new(
+            :name => @opts[:security_group],
+            :description => "#{@opts[:description]}",
+            :vpc_id => @opts[:vpc_id]
+          )
       end
 
-      if ! rule['source']
-        rule['source'] = @new_group_id
-      elsif rule["source"] !~ /\./ && 
-        ! current_groups.include?( rule['source'] )
-        raise "Group #{rule['source']} specified as part of rule: #{rule.inspect} does not exist"
+    end
+
+    def generate_rule_hash( rule )
+
+      if rule['source']
+        if rule['dest']
+          raise "One of the predefined rules has both a source " +
+            "and a destination already defined: " + rule.inspect
+        end
+        if rule["source"] !~ /\./ &&
+          ! current_groups.include?( rule['source'] )
+          raise "Group #{rule['source']} specified as part of rule: #{rule.inspect} does not exist"
+        end
       end
 
       if ! rule['dest']
@@ -37,7 +37,11 @@ module AwsUtils
         raise "Group #{rule['dest']} specified as part of rule: #{rule.inspect} does not exist"
       end
 
-      ip_permissions = { "IpProtocol" => rule["proto"] }
+      ip_permissions = {}
+
+      if rule["proto"]
+        ip_permissions["IpProtocol"] = rule["proto"]
+      end
 
       if rule["port"]
 
@@ -51,7 +55,7 @@ module AwsUtils
         ip_permissions["Groups"] = []
         ip_permissions["IpRanges"] = [ "CidrIp" => rule["source"] ]
 
-      else
+      elsif rule["source"]
 
         ip_permissions["Groups"] = [
           {
@@ -63,50 +67,84 @@ module AwsUtils
 
       end
 
-      options = { "IpPermissions" => [ ip_permissions ] }
+      rule["IpPermissions"] = [ ip_permissions ]
 
-      output = {
-        "dest" => rule['dest'],
-        "options" => options
-      }
+      return rule
 
     end
 
-    def save
+    def add_rule_to_other_group( rule )
 
-      compiled_rules.each do |rule|
+      rule["IpPermissions"].each do |r|
+        r["Groups"] = [
+          {
+            "GroupId" => g_obj.group_id,
+            "UserId" => @opts[:owner_group_id]
+          }
+        ]
+      end
 
-        begin
+      puts "Adding Outbound Rule: " + rule.inspect
 
-          puts "Rule inspect: #{rule.inspect}"
+      connection.authorize_security_group_ingress(nil,
+          {
+            "GroupId" => rule["dest"],
+            "IpPermissions" => rule["IpPermissions"]
+          }
+        )
 
-          # Amazon EC2 is neurotic about using group IDs with VPCs so
-          # we'll use the group ID whenever possible. The reason we add
-          # it here instead of when we compile the rule is so that we
-          # can do rule compilation without first creating a new group.
+    end
 
-          dest_group_id = connection.security_groups.get(rule["dest"]).group_id
+    def add_rule_to_this_group( rule )
 
-          rule["options"]["GroupId"] = dest_group_id
+      rule["IpPermissions"].each do |r|
+        r["Groups"] = [
+          {
+            "GroupId" => rule["source"],
+            "UserId" => @opts[:owner_group_id]
+          }
+        ]
+        r["dest"] = g_obj.group_id
+      end
 
-          puts "Adding Rule: " + rule['options'].inspect
-        
-          connection.authorize_security_group_ingress( 
-            dest_group_id, 
-            rule["options"] 
-          )
+      puts "Adding Inbound Rule: " + rule.inspect
 
-        rescue Excon::Errors::BadRequest => e
+      connection.authorize_security_group_ingress(nil,
+          {
+            "GroupId" => g_obj.group_id,
+            "IpPermissions" => rule["IpPermissions"]
+          }
+        )
 
-          puts "Request:"
-          puts "dest_group_id: " + dest_group_id.inspect
-          puts "rule[\"options\"]: " + rule['options'].inspect
+    end
 
-          raise e
+    def save( rules )
 
+      #g_obj.ip_permissions = []
+
+      # Then create the group
+      g_obj.save
+      puts "New group ID: #{g_obj.group_id}"
+
+      begin
+
+        rules.reject {|rule| rule["dest"] }.each do |rule|
+          add_rule_to_this_group( rule )
         end
 
+        # Then process the outbound rules now that we have a group_id
+        rules.select {|rule| rule["dest"] }.each do |rule|
+          add_rule_to_other_group( rule )
+        end
+
+      rescue Exception => e
+
+        connection.delete_security_group(nil,g_obj.group_id)
+        raise e
+
       end
+
+
     end
 
     def initialize
@@ -117,34 +155,30 @@ module AwsUtils
       @opts[:security_group]
     end
 
-    def compiled_rules
+    def compile_rules
 
-      @compiled_rules ||= begin
+      compiled_rules = []
 
-        compiled_rules = []
+      rules_data = YAML.load_file(@opts[:base_rules_file])
 
-        rules_data = YAML.load_file(@opts[:base_rules_file])
-
-        if @opts[:environment]
-          if ! rules_data["env"]
-            raise "Environment #{@opts[:environment]} not present in rules file (#{@opts[:base_rules_file]})."
-          else
-            rules_env_data = rules_data["env"][@opts[:environment]]
-          end
-        elsif rules_data.class != Array
-          raise "base_rules_file is an environment-keyed file but you did " +
-            "not specify an environment."
+      if @opts[:environment]
+        if ! rules_data["env"]
+          raise "Environment #{@opts[:environment]} not present in rules file (#{@opts[:base_rules_file]})."
         else
-          rules_env_data = rules_data
+          rules_env_data = rules_data["env"][@opts[:environment]]
         end
-
-        rules_env_data.each do |rule|
-          compiled_rules << generate_rule_opts( rule )
-        end
-
-        compiled_rules
-
+      elsif rules_data.class != Array
+        raise "base_rules_file is an environment-keyed file but you did " +
+          "not specify an environment."
+      else
+        rules_env_data = rules_data
       end
+
+      rules_env_data.each do |rule|
+        compiled_rules << generate_rule_hash( rule )
+      end
+
+      compiled_rules
 
     end
 
@@ -159,22 +193,10 @@ module AwsUtils
         puts "Group #{@opts[:security_group]} already exists!"
         exit 1
       end
-        
-      add_group
 
-      begin
+      compiled_rules = compile_rules
 
-        compiled_rules
-
-      rescue Exception => e
-
-        puts "Error rescued.  Deleting newly created group."
-        connection.delete_security_group( nil, @new_group_id )
-        raise e
-
-      end
-
-      save
+      save( compiled_rules )
 
     end
 
