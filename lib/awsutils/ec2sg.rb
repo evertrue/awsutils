@@ -17,7 +17,7 @@ module AwsUtils
       servers_using_group = Array.new
 
       connection.servers.each do |server|
-        if (server.state != "terminated") && 
+        if (server.state != "terminated") &&
           server.groups.include?( @opts[:security_group] )
           if defined?server.tags.has_key?("Name")
             servers_using_group << server.tags["Name"]
@@ -31,7 +31,7 @@ module AwsUtils
 
         print "The following servers are still using this group: "
         puts servers_using_group.join(",")
-        
+
         return true
 
       else
@@ -56,7 +56,7 @@ module AwsUtils
         current_groups = connection.security_groups.map{|g|
           [g.name,g.group_id]
         }.flatten.reject{|g| g == nil }.uniq
-        
+
       end
     end
 
@@ -70,7 +70,8 @@ module AwsUtils
         opt :security_group, "New Security Group Name", :short => 'N', :type => String, :required => true
         opt :vpc_id, "New Group VPC ID", :short => 'v', :type => String
         opt :base_rules_file, "Base rules YAML file", :short => 'r', :default => ENV['EC2_BASE_RULES'] || ENV['HOME'] + "/.ec2baserules.yml"
-        opt :description, "New Group Description", :short => 'd', :type => String
+        opt :description, "New Group Description", :short => 'd', :type => String, :required => true
+        opt :environment, "New Group Environment (e.g. stage/prod)", :short => 'E', :type => String
         opt :owner_group_id, "Owner Group ID", :short => 'o', :default => ENV['AWS_OWNER_ID']
       end
 
