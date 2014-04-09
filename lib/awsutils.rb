@@ -1,1 +1,1 @@
-require "awsutils/version"
+require 'awsutils/version'
