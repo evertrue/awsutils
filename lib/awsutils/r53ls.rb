@@ -40,8 +40,8 @@ module AwsUtils
     end
 
     def get_record_by_name
-      name = opts[:name].split('.').join('.') + "."
-      record = zone_data.select{|r| r["Name"] == name }.first
+      name = @opts[:name].split('.').join('.') + "."
+      zone_data.select{|r| r["Name"] == name }.first
     end
 
     def run
