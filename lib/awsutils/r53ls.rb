@@ -11,7 +11,7 @@ module AwsUtils
     end # def connection
 
     def parse_opts( args )
-      {:name => args[1]}
+      {:name => args[0]}
     end # def parse_opts( args )
 
     def zone_id
