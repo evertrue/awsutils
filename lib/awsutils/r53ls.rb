@@ -27,7 +27,7 @@ module AwsUtils
     end # def initialize( args )
 
     def zone_data
-      @zone_data ||= connection.c.list_resource_record_sets(@zone_id).body
+      @zone_data ||= connection.list_resource_record_sets(zone_id).body
     end
 
     def output( record )
