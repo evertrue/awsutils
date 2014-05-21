@@ -39,7 +39,15 @@ module AwsUtils
 
       group_map = {}
       connect.security_groups.map { |g| group_map[g.name] = g.group_id }
-      servers = connect.servers
+
+      if opts[:search]
+        servers = connect.servers.select do |s|
+          s.tags['Name'] =~ /.*#{opts[:search]}.*/
+        end
+      else
+        servers = connect.servers
+      end
+
       servers_a = []
 
       servers.each do |s|
@@ -372,7 +380,7 @@ module AwsUtils
     end
 
     def parse_opts
-      Trollop.options do
+      opts = Trollop.options do
         opt :sort, 'Sort order', short: 's', type: String
         opt :state, 'State', short: 'S', type: String
         opt :flavor, 'Flavor', short: 'F', type: String
@@ -383,6 +391,10 @@ module AwsUtils
         opt :terminated, 'Show terminated instances', short: 't', default: false
         opt :nocolor, 'No color', short: 'c'
       end
+
+      opts[:search] = ARGV[0] unless ARGV[0].empty?
+
+      opts
     end
 
     def initialize
