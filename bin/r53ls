@@ -10,5 +10,5 @@ require 'rubygems'
 require 'awsutils/version'
 require 'awsutils/r53ls'
 
-r = AwsUtils::Route53ListResourceRecord.new( ARGV )
+r = AwsUtils::Route53ListResourceRecord.new
 r.run
