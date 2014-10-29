@@ -23,6 +23,8 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency 'rake'
   spec.add_development_dependency 'rspec'
 
+  spec.add_dependency 'facets', '~> 2.9'
+  spec.add_dependency 'rainbow', '~> 2.0'
   spec.add_dependency 'fog', '~> 1.6'
   spec.add_dependency 'trollop'
 end
