@@ -1,4 +1,8 @@
-source 'https://wFte4n4H9gvMza16SNez@gem.fury.io/me/'
+source "https://#{ENV['GEMSPEC_KEY']}@gem.fury.io/evertrue/"
+source 'http://rubygems.org'
 
-# Specify your gem's dependencies in awsutils.gemspec
 gemspec
+
+group :development do
+  gem 'gemfury'
+end
