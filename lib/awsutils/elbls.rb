@@ -1,4 +1,5 @@
-require 'fog'
+require 'fog/aws/elb'
+require 'fog/core/parser'
 require 'facets/string/titlecase'
 require 'rainbow'
 
