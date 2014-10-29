@@ -14,7 +14,7 @@ module AwsUtils
         puts connection.load_balancers.map(&:id).sort
       else
         args.each do |lb|
-          puts colorize_yaml(attributes(lb))
+          puts colorize_yaml(attributes(lb).to_yaml)
           puts '---' if args.count > 1
         end
       end
