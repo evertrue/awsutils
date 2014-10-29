@@ -15,8 +15,8 @@ module AwsUtils
       else
         args.each do |lb|
           puts colorize_yaml(attributes(lb))
+          puts '---' if args.count > 1
         end
-        puts '---' if args.count > 1
       end
     end
 
