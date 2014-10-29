@@ -10,7 +10,14 @@ module AwsUtils
     def run(args)
       @args = args
 
-      puts colorize_yaml(attributes)
+      if args.empty?
+        puts connection.load_balancers.map(&:id).sort
+      else
+        args.each do |lb|
+          puts colorize_yaml(attributes(lb))
+        end
+        puts '---' if args.count > 1
+      end
     end
 
     private
@@ -26,8 +33,8 @@ module AwsUtils
       end.join("\n")
     end
 
-    def attributes
-      Hash[lb.attributes.map do |key, val|
+    def attributes(lb)
+      Hash[connection.load_balancers.get(lb).attributes.map do |key, val|
         case key
         when Symbol
           [key.to_s.titlecase, val]
