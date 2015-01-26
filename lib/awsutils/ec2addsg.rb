@@ -148,7 +148,7 @@ module AwsUtils
     end
 
     def initialize
-      @opts = Ec2SecurityGroup.parse_opts
+      @opts = parse_opts
     end
 
     def name
@@ -198,6 +198,39 @@ module AwsUtils
 
       save( compiled_rules )
 
+    end
+
+    def parse_opts
+      fail 'AWS_OWNER_ID is not set!' unless ENV['AWS_OWNER_ID']
+
+      @opts = Trollop.options do
+        opt :security_group,
+            'New Security Group Name',
+            short: 'N',
+            type: String,
+            required: true
+        opt :vpc_id,
+            'New Group VPC ID',
+            short: 'v',
+            type: String
+        opt :base_rules_file,
+            'Base rules YAML file',
+            short: 'r',
+            default: ENV['EC2_BASE_RULES'] || ENV['HOME'] + '/.ec2baserules.yml'
+        opt :description,
+            'New Group Description',
+            short: 'd',
+            type: String,
+            required: true
+        opt :environment,
+            'New Group Environment (e.g. stage/prod)',
+            short: 'E',
+            type: String
+        opt :owner_group_id,
+            'Owner Group ID',
+            short: 'o',
+            default: ENV['AWS_OWNER_ID']
+      end
     end
 
   end
