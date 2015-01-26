@@ -2,7 +2,7 @@
 
 require 'rubygems'
 require 'trollop'
-require 'fog'
+require 'fog/aws/compute'
 
 module AwsUtils
   class Ec2SecurityGroup
