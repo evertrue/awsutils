@@ -1,14 +1,9 @@
-require 'rubygems'
-require 'fog'
+require 'awsutils/ec2sg'
 
 gem 'fog', '>= 1.6.0'
 
 module AwsUtils
-  class Ec2LsGrp
-    def connection
-      @connection ||= Fog::Compute.new(provider: 'AWS')
-    end
-
+  class Ec2LsGrp < Ec2SecurityGroup
     def lookup
       if @group =~ /^sg-/
         group_name = get_group_name(@group)
