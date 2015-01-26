@@ -10,5 +10,5 @@ require 'rubygems'
 require 'awsutils/version'
 require 'awsutils/ec2lsgrp'
 
-sg = AwsUtils::Ec2LsGrp.new( ARGV )
+sg = AwsUtils::Ec2LsGrp.new
 sg.run

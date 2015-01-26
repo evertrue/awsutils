@@ -1,4 +1,5 @@
 require 'awsutils/ec2sg'
+require 'trollop'
 
 gem 'fog', '>= 1.6.0'
 
@@ -56,12 +57,13 @@ module AwsUtils
       perms_out('egress', g.ip_permissions_egress) if g.vpc_id
     end
 
-    def initialize(args)
+    def initialize
       unless args[0]
         puts 'Please specify a security group'
         exit 1
       end
-      @group = args[0]
+      @opts = parse_opts
+      @search = ARGV.last
     end
 
     private
@@ -75,6 +77,15 @@ module AwsUtils
         end
       end
       @allgroups
+    end
+
+    def parse_opts
+      Trollop.options do
+        opt :list_refs,
+            'List groups referencing this group',
+            short: 'r',
+            default: false
+      end
     end
 
     def get_group_name(id)
