@@ -5,16 +5,6 @@ gem 'fog', '>= 1.6.0'
 
 module AwsUtils
   class Ec2LsGrp < Ec2SecurityGroup
-    def lookup
-      if @group =~ /^sg-/
-        group_name = get_group_name(@group)
-      else
-        group_name = @group
-      end
-
-      connection.security_groups.get(group_name)
-    end
-
     def msg_pair(key, value)
       puts("#{key} #{value}")
     end
@@ -25,7 +15,7 @@ module AwsUtils
         print "  #{index} "
         if perm['groups'].count > 0
           groups_arr = perm['groups'].map do |g|
-            "#{g['groupId']} (#{get_group_name(g['groupId'])})"
+            "#{g['groupId']} (#{group(g['groupId']).name})"
           end
           print "groups: #{groups_arr.join(', ')}; "
         end
@@ -39,9 +29,7 @@ module AwsUtils
       end
     end
 
-    def run
-      g = lookup
-
+    def group_details(g)
       if g.nil?
         puts 'No group found by that name.'
         exit 1
@@ -57,6 +45,17 @@ module AwsUtils
       perms_out('egress', g.ip_permissions_egress) if g.vpc_id
     end
 
+    def run
+      group_o = group(@search)
+      return group_details(group_o) unless @opts[:list_refs]
+      refs = references(group_o.group_id)
+      if refs.empty?
+        puts 'No references'
+      else
+        puts "References: #{refs.map(&:name).join(', ')}"
+      end
+    end
+
     def initialize
       unless args[0]
         puts 'Please specify a security group'
@@ -68,17 +67,6 @@ module AwsUtils
 
     private
 
-    def allgroups
-      unless @allgroups
-        @allgroups = {}
-        connection.describe_security_groups.data[:body]['securityGroupInfo']
-          .select { |g| g['groupName'] }.each do |g|
-          @allgroups[g['groupId']] = g['groupName']
-        end
-      end
-      @allgroups
-    end
-
     def parse_opts
       Trollop.options do
         opt :list_refs,
@@ -88,8 +76,12 @@ module AwsUtils
       end
     end
 
-    def get_group_name(id)
-      allgroups[id]
+    def group(search)
+      groups.find do |g|
+        (search =~ /^sg-/ &&
+          g.group_id == search) ||
+          g.name == search
+      end
     end
   end
 end
