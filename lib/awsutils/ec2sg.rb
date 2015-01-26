@@ -10,33 +10,17 @@ module AwsUtils
     end
 
     def assigned?
+      servers_using_group = connection.servers.map do |server|
+        next unless server.state != 'terminated' &&
+                    server.groups.include?(@opts[:security_group])
+        server.tags['Name'] ? server.tags['Name'] : server.id
+      end.compact
 
-      servers_using_group = Array.new
+      return false unless servers_using_group.length > 0
+      print 'The following servers are still using this group: '
+      puts servers_using_group.join(',')
 
-      connection.servers.each do |server|
-        if (server.state != "terminated") &&
-          server.groups.include?( @opts[:security_group] )
-          if defined?server.tags.has_key?("Name")
-            servers_using_group << server.tags["Name"]
-          else
-            servers_using_group << server.id
-          end
-        end
-      end
-
-      if servers_using_group.length > 0
-
-        print "The following servers are still using this group: "
-        puts servers_using_group.join(",")
-
-        return true
-
-      else
-
-        return false
-
-      end
-
+      true
     end
 
     def exist?
