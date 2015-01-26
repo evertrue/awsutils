@@ -3,11 +3,8 @@
 require 'awsutils/ec2sg'
 
 module AwsUtils
-
   class Ec2AddSecurityGroup < Ec2SecurityGroup
-
     def g_obj
-
       @g_obj ||= begin
           connection.security_groups.new(
             :name => @opts[:security_group],
@@ -15,11 +12,9 @@ module AwsUtils
             :vpc_id => @opts[:vpc_id]
           )
       end
-
     end
 
     def generate_rule_hash( rule )
-
       if rule['source']
         if rule['dest']
           raise "One of the predefined rules has both a source " +
@@ -44,19 +39,14 @@ module AwsUtils
       end
 
       if rule["port"]
-
         ip_permissions["FromPort"] = rule["port"].first.to_s
         ip_permissions["ToPort"] = rule["port"].last.to_s
-
       end
 
       if rule["source"] =~ /\./
-
         ip_permissions["Groups"] = []
         ip_permissions["IpRanges"] = [ "CidrIp" => rule["source"] ]
-
       elsif rule["source"]
-
         ip_permissions["Groups"] = [
           {
             "GroupId" => rule["source"],
@@ -64,17 +54,14 @@ module AwsUtils
           }
         ]
         ip_permissions["IpRanges"] = []
-
       end
 
       rule["IpPermissions"] = [ ip_permissions ]
 
-      return rule
-
+      rule
     end
 
     def add_rule_to_other_group( rule )
-
       rule["IpPermissions"].each do |r|
         r["Groups"] = [
           {
@@ -92,11 +79,9 @@ module AwsUtils
             "IpPermissions" => rule["IpPermissions"]
           }
         )
-
     end
 
     def add_rule_to_this_group( rule )
-
       rule["IpPermissions"].each do |r|
         r["Groups"] = [
           {
@@ -115,19 +100,13 @@ module AwsUtils
             "IpPermissions" => rule["IpPermissions"]
           }
         )
-
     end
 
     def save( rules )
-
-      #g_obj.ip_permissions = []
-
-      # Then create the group
       g_obj.save
       puts "New group ID: #{g_obj.group_id}"
 
       begin
-
         rules.reject {|rule| rule["dest"] }.each do |rule|
           add_rule_to_this_group( rule )
         end
@@ -136,15 +115,10 @@ module AwsUtils
         rules.select {|rule| rule["dest"] }.each do |rule|
           add_rule_to_other_group( rule )
         end
-
       rescue Exception => e
-
         connection.delete_security_group(nil,g_obj.group_id)
         raise e
-
       end
-
-
     end
 
     def initialize
@@ -156,9 +130,6 @@ module AwsUtils
     end
 
     def compile_rules
-
-      compiled_rules = []
-
       rules_data = YAML.load_file(@opts[:base_rules_file])
 
       if @opts[:environment]
@@ -174,16 +145,12 @@ module AwsUtils
         rules_env_data = rules_data
       end
 
-      rules_env_data.each do |rule|
-        compiled_rules << generate_rule_hash( rule )
+      rules_env_data.map do |rule|
+        generate_rule_hash( rule )
       end
-
-      compiled_rules
-
     end
 
     def run
-
       if ! File.exist?(@opts[:base_rules_file])
         puts "File #{@opts[:base_rules_file]} does not exist!"
         exit 1
@@ -194,10 +161,7 @@ module AwsUtils
         exit 1
       end
 
-      compiled_rules = compile_rules
-
-      save( compiled_rules )
-
+      save(compile_rules)
     end
 
     def parse_opts
@@ -232,7 +196,5 @@ module AwsUtils
             default: ENV['AWS_OWNER_ID']
       end
     end
-
   end
-
 end
