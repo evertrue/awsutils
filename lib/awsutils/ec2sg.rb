@@ -5,11 +5,9 @@ require 'trollop'
 require 'fog'
 
 module AwsUtils
-
   class Ec2SecurityGroup
-
     def connection
-      @connection ||= Fog::Compute.new(:provider => 'AWS')
+      @connection ||= Fog::Compute.new(provider: 'AWS')
     end
 
     def assigned?
@@ -43,20 +41,12 @@ module AwsUtils
     end
 
     def exist?
-      if ! current_groups.include?( @opts[:security_group] )
-        return false
-      else
-        return true
-      end
+      current_groups.include?(@opts[:security_group])
     end
 
     def current_groups
       @current_groups ||= begin
-
-        current_groups = connection.security_groups.map{|g|
-          [g.name,g.group_id]
-        }.flatten.reject{|g| g == nil }.uniq
-
+        connection.security_groups.map { |g| [g.name, g.group_id] }.flatten.uniq
       end
     end
 
@@ -78,5 +68,4 @@ module AwsUtils
     end
 
   end
-
 end
