@@ -52,7 +52,7 @@ module AwsUtils
       if refs.empty?
         puts 'No references'
       else
-        puts "References: #{refs.map(&:name).join(', ')}"
+        puts "References: #{refs.keys.join(', ')}"
       end
     end
 
