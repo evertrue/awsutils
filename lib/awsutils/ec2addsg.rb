@@ -1,6 +1,7 @@
 #!/usr/bin/ruby
 
 require 'awsutils/ec2sg'
+require 'trollop'
 
 module AwsUtils
   class Ec2AddSecurityGroup < Ec2SecurityGroup
