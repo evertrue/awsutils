@@ -57,7 +57,7 @@ module AwsUtils
     end
 
     def initialize
-      unless args[0]
+      unless ARGV[0]
         puts 'Please specify a security group'
         exit 1
       end
