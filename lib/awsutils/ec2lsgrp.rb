@@ -53,6 +53,7 @@ module AwsUtils
         puts 'No references'
       else
         puts "References: #{refs.keys.join(', ')}"
+        puts refs.to_yaml if @opts[:verbose]
       end
     end
 
@@ -79,6 +80,10 @@ module AwsUtils
         opt :list_refs,
             'List groups referencing this group',
             short: 'r',
+            default: false
+        opt :verbose,
+            'Verbose output (currently only used with -r output)',
+            short: 'v',
             default: false
       end
     end
