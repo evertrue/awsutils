@@ -46,13 +46,20 @@ module AwsUtils
     end
 
     def run
-      group_o = group(@search)
+      group_o = group(search_group_id)
       return group_details(group_o) unless @opts[:list_refs]
       refs = references(group_o.group_id)
       if refs.empty?
         puts 'No references'
       else
         puts "References: #{refs.keys.join(', ')}"
+      end
+    end
+
+    def search_group_id
+      @search_group_id ||= begin
+        return @search if @search =~ /^sg-/
+        groups.find { |g| g.name == @search }.group_id
       end
     end
 
