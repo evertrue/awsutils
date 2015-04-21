@@ -1,7 +1,7 @@
 #!/usr/bin/ruby
 
 require 'rubygems'
-require 'fog/aws/compute'
+require 'fog/aws'
 
 module AwsUtils
   class Ec2SecurityGroup
