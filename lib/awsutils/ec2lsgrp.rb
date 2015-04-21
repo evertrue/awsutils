@@ -15,7 +15,11 @@ module AwsUtils
         print "  #{index} "
         if perm['groups'].count > 0
           groups_arr = perm['groups'].map do |g|
-            "#{g['groupId']} (#{group(g['groupId']).name})"
+            if g['userId'] == @owner_id
+              "#{g['groupId']} (#{group(g['groupId']).name})"
+            else
+              "#{g['groupId']} (#{g['groupName']}, owner: #{g['userId']})"
+            end
           end
           print "groups: #{groups_arr.join(', ')}; "
         end
@@ -35,9 +39,11 @@ module AwsUtils
         exit 1
       end
 
+      @owner_id = g.owner_id
+
       msg_pair('ID', g.group_id)
       msg_pair('NAME', g.name)
-      msg_pair('OWNER_ID', g.owner_id)
+      msg_pair('OWNER_ID', @owner_id)
       msg_pair('DESCRIPTION', g.description)
       msg_pair('VPC_ID', g.vpc_id) if g.vpc_id
 
