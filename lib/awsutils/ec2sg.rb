@@ -6,7 +6,7 @@ require 'fog/aws'
 module AwsUtils
   class Ec2SecurityGroup
     def connection
-      @connection ||= Fog::Compute.new(provider: 'AWS')
+      @connection ||= Fog::Compute::AWS.new
     end
 
     def references(search)
