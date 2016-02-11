@@ -61,6 +61,9 @@ module AwsUtils
         puts "References: #{refs.keys.join(', ')}"
         puts refs.to_yaml if @opts[:verbose]
       end
+    rescue Interrupt => e
+      puts e.message
+      exit 1
     end
 
     def search_group_id
