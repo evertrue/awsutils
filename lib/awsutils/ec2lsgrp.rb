@@ -67,10 +67,8 @@ module AwsUtils
     end
 
     def search_group_id
-      @search_group_id ||= begin
-        return @search if @search =~ /^sg-/
-        groups.find { |g| g.name == @search }.group_id
-      end
+      return @search if @search =~ /^sg-/
+      groups.find { |g| g.name == @search }.group_id
     end
 
     def initialize
