@@ -15,19 +15,8 @@ module AwsUtils
       puts "#{direction.upcase} RULES"
       perms.to_enum.with_index(1) do |perm, index|
         print "  #{index} "
-        if perm['groups'].count > 0
-          groups_arr = perm['groups'].map do |g|
-            if g['userId'] == owner_id
-              "#{g['groupId']} (#{group(g['groupId']).name})"
-            else
-              "#{g['groupId']} (#{g['groupName']}, owner: #{g['userId']})"
-            end
-          end
-          print "groups: #{groups_arr.join(', ')}; "
-        end
-        if perm['ipRanges'].count > 0
-          print "ip_ranges: #{perm['ipRanges'].join(', ')}; "
-        end
+        print "groups: #{group_perm_string(perm['groups'])}; " if perm['groups'].count > 0
+        print "ip_ranges: #{perm['ipRanges'].join(', ')}; " if perm['ipRanges'].count > 0
         print "ipProtocol: #{perm['ipProtocol']}; "
         print "fromPort: #{perm['fromPort']}; " if perm['fromPort']
         print "toPort: #{perm['toPort']}" if perm['toPort']
@@ -36,11 +25,6 @@ module AwsUtils
     end
 
     def group_details(g)
-      if g.nil?
-        puts 'No group found by that name.'
-        exit 1
-      end
-
       @owner_id = g.owner_id
 
       msg_pair('ID', g.group_id)
@@ -54,7 +38,10 @@ module AwsUtils
     end
 
     def run
-      group_o = group(search_group_id)
+      unless group_o = group(search) # rubocop:disable Lint/AssignmentInCondition
+        puts 'No group found by that name/ID'
+        exit 2
+      end
       return group_details(group_o) unless opts[:list_refs]
       refs = references(group_o.group_id)
       if refs.empty?
@@ -68,11 +55,6 @@ module AwsUtils
       exit 1
     end
 
-    def search_group_id
-      return search if search =~ /^sg-/
-      groups.find { |g| g.name == search }.group_id
-    end
-
     def initialize
       unless ARGV[0]
         puts 'Please specify a security group'
@@ -83,6 +65,16 @@ module AwsUtils
     end
 
     private
+
+    def group_perm_string(group_perm)
+      group_perm.map do |g|
+        if g['userId'] == owner_id
+          "#{g['groupId']} (#{group(g['groupId']).name})"
+        else
+          "#{g['groupId']} (#{g['groupName']}, owner: #{g['userId']})"
+        end
+      end.join(', ')
+    end
 
     def parse_opts
       Trollop.options do
@@ -98,11 +90,7 @@ module AwsUtils
     end
 
     def group(search)
-      groups.find do |g|
-        (search =~ /^sg-/ &&
-          g.group_id == search) ||
-          g.name == search
-      end
+      groups.find { |g| (search =~ /^sg-/ && g.group_id == search) || g.name == search }
     end
   end
 end
