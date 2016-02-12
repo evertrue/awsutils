@@ -5,6 +5,8 @@ gem 'fog', '>= 1.6.0'
 
 module AwsUtils
   class Ec2LsGrp < Ec2SecurityGroup
+    attr_reader :search, :opts, :owner_id
+
     def msg_pair(key, value)
       puts("#{key} #{value}")
     end
@@ -15,7 +17,7 @@ module AwsUtils
         print "  #{index} "
         if perm['groups'].count > 0
           groups_arr = perm['groups'].map do |g|
-            if g['userId'] == @owner_id
+            if g['userId'] == owner_id
               "#{g['groupId']} (#{group(g['groupId']).name})"
             else
               "#{g['groupId']} (#{g['groupName']}, owner: #{g['userId']})"
@@ -43,7 +45,7 @@ module AwsUtils
 
       msg_pair('ID', g.group_id)
       msg_pair('NAME', g.name)
-      msg_pair('OWNER_ID', @owner_id)
+      msg_pair('OWNER_ID', owner_id)
       msg_pair('DESCRIPTION', g.description)
       msg_pair('VPC_ID', g.vpc_id) if g.vpc_id
 
@@ -53,13 +55,13 @@ module AwsUtils
 
     def run
       group_o = group(search_group_id)
-      return group_details(group_o) unless @opts[:list_refs]
+      return group_details(group_o) unless opts[:list_refs]
       refs = references(group_o.group_id)
       if refs.empty?
         puts 'No references'
       else
         puts "References: #{refs.keys.join(', ')}"
-        puts refs.to_yaml if @opts[:verbose]
+        puts refs.to_yaml if opts[:verbose]
       end
     rescue Interrupt => e
       puts e.message
@@ -67,8 +69,8 @@ module AwsUtils
     end
 
     def search_group_id
-      return @search if @search =~ /^sg-/
-      groups.find { |g| g.name == @search }.group_id
+      return search if search =~ /^sg-/
+      groups.find { |g| g.name == search }.group_id
     end
 
     def initialize
