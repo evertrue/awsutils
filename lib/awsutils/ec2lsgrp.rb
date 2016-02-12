@@ -1,7 +1,7 @@
 require 'awsutils/ec2sg'
 require 'trollop'
 
-gem 'fog', '>= 1.6.0'
+gem 'fog-aws', '>= 0.7.6'
 
 module AwsUtils
   class Ec2LsGrp < Ec2SecurityGroup
