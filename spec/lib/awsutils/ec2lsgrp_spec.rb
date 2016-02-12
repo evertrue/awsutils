@@ -32,7 +32,7 @@ describe AwsUtils::Ec2LsGrp do
       end
     end
 
-    context 'search by valid id' do
+    context 'search by valid ID' do
       it 'return the group object' do
         expect(ec2lsgrp.send('group', 'sg-a1b2c3d4')).to eq group_set.first
       end
@@ -44,7 +44,7 @@ describe AwsUtils::Ec2LsGrp do
       end
     end
 
-    context 'search by invalid name' do
+    context 'search by invalid ID' do
       it 'return nil' do
         expect(ec2lsgrp.send('group', 'sg-00000000')).to eq nil
       end
