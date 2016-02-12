@@ -6,9 +6,20 @@
 # this file is here to facilitate running it.
 #
 
-require 'rubygems'
-require 'awsutils/version'
-require 'awsutils/ec2lsgrp'
+begin
+  require 'rubygems'
+  require 'awsutils/version'
+  require 'awsutils/ec2lsgrp'
 
-sg = AwsUtils::Ec2LsGrp.new
-sg.run
+  begin
+    AwsUtils::Ec2LsGrp.new.run
+  rescue AwsUtils::GroupDoesNotExist
+    puts 'No group found by that name/ID'
+    exit 2
+  rescue ArgumentError => e
+    puts "#{e.class}: #{e.message}"
+    exit 3
+  end
+rescue Interrupt
+  exit 1
+end

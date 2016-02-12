@@ -51,15 +51,27 @@ describe AwsUtils::Ec2LsGrp do
     end
   end
 
+  context 'specify no arguments' do
+    before do
+      allow(ec2lsgrp).to receive(:search).and_return nil
+    end
+
+    it 'raise ArgumentError' do
+      expect { ec2lsgrp.run }.to raise_error(
+        ArgumentError,
+        'Please specify a security group'
+      )
+    end
+  end
+
   context 'search for a group' do
     context 'by a name that does not exist' do
       before do
         allow(ec2lsgrp).to receive(:search).and_return 'bad-group-name'
       end
 
-      it 'should print an error and exit' do
-        expect(ec2lsgrp).to receive(:puts).with('No group found by that name/ID')
-        expect { ec2lsgrp.run }.to raise_error(SystemExit, 'exit')
+      it 'should raise GroupDoesNotExist exception' do
+        expect { ec2lsgrp.run }.to raise_error AwsUtils::GroupDoesNotExist
       end
     end
 
@@ -68,9 +80,8 @@ describe AwsUtils::Ec2LsGrp do
         allow(ec2lsgrp).to receive(:search).and_return 'sg-a1b2c3d4'
       end
 
-      it 'should print an error and exit' do
-        expect(ec2lsgrp).to receive(:puts).with('No group found by that name/ID')
-        expect { ec2lsgrp.run }.to raise_error(SystemExit, 'exit')
+      it 'should raise GroupDoesNotExist exception' do
+        expect { ec2lsgrp.run }.to raise_error AwsUtils::GroupDoesNotExist
       end
     end
 

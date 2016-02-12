@@ -4,6 +4,8 @@ require 'trollop'
 gem 'fog-aws', '>= 0.7.6'
 
 module AwsUtils
+  class GroupDoesNotExist < StandardError; end
+
   class Ec2LsGrp < Ec2SecurityGroup
     attr_reader :search, :opts, :owner_id
 
@@ -38,9 +40,9 @@ module AwsUtils
     end
 
     def run
+      fail ArgumentError, 'Please specify a security group' unless search
       unless group_o = group(search) # rubocop:disable Lint/AssignmentInCondition
-        puts 'No group found by that name/ID'
-        exit 2
+        fail GroupDoesNotExist
       end
       return group_details(group_o) unless opts[:list_refs]
       refs = references(group_o.group_id)
@@ -50,16 +52,9 @@ module AwsUtils
         puts "References: #{refs.keys.join(', ')}"
         puts refs.to_yaml if opts[:verbose]
       end
-    rescue Interrupt => e
-      puts e.message
-      exit 1
     end
 
     def initialize
-      unless ARGV[0]
-        puts 'Please specify a security group'
-        exit 1
-      end
       @opts = parse_opts
       @search = ARGV.last
     end
