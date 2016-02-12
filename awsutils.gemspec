@@ -5,7 +5,7 @@ require 'awsutils/version'
 
 Gem::Specification.new do |spec|
   spec.name          = 'awsutils'
-  spec.version       = Awsutils::VERSION
+  spec.version       = AwsUtils::VERSION
   spec.authors       = ['Eric Herot']
   spec.email         = ['eric.rubygems@herot.com']
   spec.description   = %q{A set of tools for interacting with AWS}
