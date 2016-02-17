@@ -4,7 +4,18 @@ require 'fog/aws'
 module AwsUtils
   class Ec2SecurityGroup
     def connection
-      @connection ||= Fog::Compute::AWS.new
+      @connection ||= begin
+        options = {}
+
+        if ENV['AWS_ACCESS_KEY']
+          options = {
+            aws_access_key_id: ENV['AWS_ACCESS_KEY'],
+            aws_secret_access_key: ENV['AWS_SECRET_KEY']
+          }
+        end
+
+        Fog::Compute::AWS.new options
+      end
     end
 
     def references(search)
