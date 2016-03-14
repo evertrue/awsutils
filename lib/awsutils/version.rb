@@ -1,3 +1,3 @@
 module AwsUtils
-  VERSION = '1.4.5'
+  VERSION = '2.0.0'
 end
