@@ -1,5 +1,5 @@
 require 'rubygems'
-require 'fog'
+require 'fog/aws'
 
 class Array
 
