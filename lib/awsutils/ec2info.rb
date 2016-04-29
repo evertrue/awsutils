@@ -1,10 +1,27 @@
 require 'rubygems'
 require 'fog/aws'
+require 'awesome_print'
 
 class String
+  def underscore
+    gsub(/::/, '/')
+      .gsub(/([A-Z]+)([A-Z][a-z])/, '\1_\2')
+      .gsub(/([a-z\d])([A-Z])/, '\1_\2')
+      .tr('-', '_')
+      .downcase
+  end
+
   def title_case
-    return self if self !~ /_/ && self =~ /[A-Z]+.*/
-    split('_').map { |e| e.capitalize }.join(' ')
+    underscore.split('_').map do |word|
+      # Recognize certain special cases (e.g. acronyms)
+      if %w(iam ebs id dns vpc).include? word.downcase
+        word.upcase
+      elsif word.casecmp('ids').zero?
+        'IDs'
+      else
+        word.capitalize
+      end
+    end.join(' ')
   end
 end
 
@@ -31,14 +48,14 @@ module AwsUtils
       @ec2 ||= Fog::Compute.new(provider: 'AWS')
     end
 
-    def instance_ids
+    def instances
       @instance_ids ||= begin
         if $DEBUG
           puts 'Entering instance_ids'
           puts "Search Term: #{search_terms.inspect}"
         end
 
-        results = search_terms.each_with_object([]) do |search_term, m|
+        instance_ids = search_terms.each_with_object([]) do |search_term, m|
           if (/^i-/ =~ search_term) && !(/\./ =~ search_term)
             m << search_term
           else
@@ -51,14 +68,14 @@ module AwsUtils
           end
         end
 
-        if results.empty?
+        if instance_ids.empty?
           puts 'No instances by that Name/ID in this account'
           exit 1
         end
 
         puts "Found instances: #{results.inspect}" if $DEBUG
 
-        results
+        ec2.servers.all 'instance-id' => instance_ids
       end
     end
 
@@ -133,12 +150,28 @@ module AwsUtils
       end
     end
 
+    def printkv(key, value)
+      key_color = "\033[30;1m" # Style: Bold; Color: Default
+      reset_color = "\033[0m"
+
+      print "#{key_color}#{key.to_s.title_case}:#{reset_color} "
+      case
+      when value.respond_to?(:to_sym)
+        puts value
+      when value.respond_to?(:key?)
+        puts
+        value.each { |k, v| printkv "  #{k}", v }
+      when (
+        value.respond_to?(:join) &&
+        value.reject { |item| item.respond_to?(:to_sym) }.empty? # If value only contains strings, do this
+      )
+        value.join(', ')
+      else
+        puts value.inspect
+      end
+    end
+
     def describe_instance
-      instance_attribute_index = ec2.servers.first.class.attributes
-        # ec2.servers.first.class.attributes.reject { |attr| attr == :vpc_id }
-
-      puts "Built attribute index: #{instance_attribute_index.inspect}" if $DEBUG
-
       col_green = "\033[32;1m" # Style: Bold; Color: Green
       col_red = "\033[31;1m" # Style: Bold; Color: Red
       # col_blinking_red = "\033[31;5m"
@@ -146,22 +179,14 @@ module AwsUtils
       key_color = "\033[30;1m" # Style: Bold; Color: Default
       reset_color = "\033[0m"
 
-      instance_ids.each do |instance_id|
-        instance = ec2.servers.get instance_id
-
+      instances.each do |instance|
         puts "#{key_color}NAME:#{reset_color} #{instance.tags['Name']}"
         puts
 
-        instance_attribute_index.each do |instance_attribute|
+        instance.attributes.each do |instance_attribute, _value|
           puts "Instance attribute: #{instance_attribute}" if $DEBUG
 
           case instance_attribute
-          when :id
-            puts "#{key_color}ID:#{reset_color} #{instance.id}"
-          when :ami_launch_index
-            puts "#{key_color}AMI Launch Index:#{reset_color} #{instance.ami_launch_index}"
-          when :availability_zone
-            puts "#{key_color}Availability Zone:#{reset_color} #{instance.availability_zone}"
           when :block_device_mapping
             puts "#{key_color}Block Devices:#{reset_color} "
 
@@ -230,8 +255,6 @@ module AwsUtils
             elsif $DEBUG
               puts "#{key_color}Client Token:#{reset_color} N/A"
             end
-          when :dns_name
-            puts "#{key_color}DNS Name:#{reset_color} #{instance.dns_name}"
           when :groups
             instance.groups.each do |group_id|
               group = ec2.security_groups.get(group_id)
@@ -279,36 +302,12 @@ module AwsUtils
                 puts "\t\t#{key_color}#{image_tag}: #{image_tag_value}"
               end
             end
-          when :kernel_id
-            puts "#{key_color}Kernel ID:#{reset_color} #{instance.kernel_id}"
-          when :key_name
-            puts "#{key_color}SSH Key:#{reset_color} #{instance.key_name}"
-          when :created_at
-            puts "#{key_color}Created Date:#{reset_color} #{instance.created_at}"
-          when :monitoring
-            puts "#{key_color}Monitoring:#{reset_color} #{instance.monitoring}"
-          when :placement_group
-            if instance.placement_group
-              puts "#{key_color}Placement Group:#{reset_color} #{instance.placement_group}"
-            elsif $DEBUG
-              puts "#{key_color}Placement Group:#{reset_color} N/A"
-            end
-          when :platform
-            if instance.platform
-              puts "#{key_color}Platform:#{reset_color} #{instance.platform}"
-            elsif $DEBUG
-              puts "#{key_color}Platform:#{reset_color} N/A"
-            end
           when :product_codes
             if instance.product_codes.any?
               puts "#{key_color}Product Codes:#{reset_color} #{instance.product_codes.join(',')}"
             elsif $DEBUG
               puts "#{key_color}Product Codes:#{reset_color} N/A"
             end
-          when :private_dns_name
-            puts "#{key_color}Private DNS Name:#{reset_color} #{instance.private_dns_name}"
-          when :private_ip_address
-            puts "#{key_color}Private IP Address:#{reset_color} #{instance.private_ip_address}"
           when :public_ip_address
             if ec2.addresses.get(instance.public_ip_address)
               puts "#{key_color}Public IP Address:#{reset_color} " \
@@ -316,36 +315,6 @@ module AwsUtils
             else
               puts "#{key_color}Public IP Address:#{reset_color} " \
                    "#{instance.public_ip_address} (#{col_red}DYNAMIC#{reset_color})"
-            end
-          when :ramdisk_id
-            if instance.ramdisk_id
-              puts "#{key_color}Ramdisk ID:#{reset_color} #{instance.ramdisk_id}"
-            elsif $DEBUG
-              puts "#{key_color}Ramdisk ID:#{reset_color} N/A"
-            end
-          when :reason
-            if instance.reason
-              puts "#{key_color}State Reason:#{reset_color} #{instance.reason}"
-            elsif $DEBUG
-              puts "#{key_color}State Reason:#{reset_color} N/A"
-            end
-          when :root_device_name
-            if instance.root_device_name
-              puts "#{key_color}Root Device Name:#{reset_color} #{instance.root_device_name}"
-            elsif $DEBUG
-              puts "#{key_color}Root Device Name:#{reset_color} N/A"
-            end
-          when :root_device_type
-            if instance.root_device_type
-              puts "#{key_color}Root Device Type:#{reset_color} #{instance.root_device_type}"
-            elsif $DEBUG
-              puts "#{key_color}Root Device Name:#{reset_color} N/A"
-            end
-          when :security_group_ids
-            if instance.security_group_ids
-              puts "#{key_color}Security Group IDs:#{reset_color} #{instance.security_group_ids}"
-            elsif $DEBUG
-              puts "#{key_color}Security Group IDs:#{reset_color} N/A"
             end
           when :state
             state_color = get_state_color(instance.state)
@@ -356,14 +325,6 @@ module AwsUtils
             elsif $DEBUG
               puts "#{key_color}State Reason Code:#{reset_color} N/A"
             end
-          when :subnet_id
-            if instance.subnet_id
-              puts "#{key_color}Subnet ID:#{reset_color} #{instance.subnet_id}"
-            elsif $DEBUG
-              puts "#{key_color}Subnet ID:#{reset_color} N/A"
-            end
-          when :tenancy
-            puts "#{key_color}Tenancy:#{reset_color} #{instance.tenancy}"
           when :tags
             if instance.tags.any?
               puts "#{key_color}Tags:#{reset_color} "
@@ -374,21 +335,12 @@ module AwsUtils
             else
               puts "#{key_color}Tags:#{reset_color} None"
             end
-          when :user_data
-            if instance.user_data
-              puts "#{key_color}User Data:#{reset_color} #{instance.user_data}"
-            elsif $DEBUG
-              puts "#{key_color}User Data:#{reset_color} N/A"
-            end
-          when :vpc_id
-            if instance.vpc_id
-              puts "#{key_color}VPC ID:#{reset_color} #{instance.vpc_id}"
-            elsif $DEBUG
-              puts "#{key_color}VPC ID: #{reset_color} N/A"
-            end
           else
-            print "#{key_color}#{instance_attribute.to_s.title_case}:#{reset_color} "
-            puts instance.respond_to?(:instance_attribute) ? '' : '<NULL>'
+            if instance.respond_to?(instance_attribute) && !instance.send(instance_attribute).nil?
+              printkv instance_attribute, instance.send(instance_attribute)
+            else
+              printkv instance_attribute, '<NULL>'
+            end
           end
         end
 
@@ -399,7 +351,7 @@ module AwsUtils
           puts "#{key_color}Shutdown Behavior:#{reset_color} Do nothing"
         end
 
-        if instance_id != instance_ids.last
+        if instance.id != instances.last.id
           puts '------------------------------------------------------------------------------------'
         end
       end
