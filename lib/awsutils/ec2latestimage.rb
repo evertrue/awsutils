@@ -8,7 +8,7 @@ module AwsUtils
       @releases ||= begin
         resp = JSON.parse(
           Net::HTTP.get(
-            URI('http://cloud-images.ubuntu.com/locator/ec2/releasesTable')
+            URI("http://cloud-images.ubuntu.com/locator/ec2/releasesTable?_=#{(Time.now.to_f*1000).to_i}")
           ).sub(/\],\n\]/, "]\n]")
         )
         parse_releases_array(resp['aaData']).select do |rel|
