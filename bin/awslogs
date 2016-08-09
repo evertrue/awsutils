@@ -11,4 +11,4 @@ require 'awsutils/version'
 require 'awsutils/awslogs'
 
 awslogs = AwsUtils::AwsLogs.new
-awslogs.log_events
+awslogs.print_events

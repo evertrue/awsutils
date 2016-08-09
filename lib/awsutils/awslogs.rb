@@ -1,8 +1,11 @@
 require 'trollop'
 require 'aws-sdk'
+require 'time'
 
 module AwsUtils
   class AwsLogs
+    LOG_LEVELS = %w(TRACE DEBUG INFO NOTICE WARNING ERROR FATAL).freeze
+
     def opts
       @opts ||= Trollop.options do
         opt :group,
@@ -12,23 +15,34 @@ module AwsUtils
             short: 'g'
         opt :filter_pattern,
             'See: http://docs.aws.amazon.com/AmazonCloudWatch/latest/DeveloperGuide/FilterAndPatternSyntax.html',
-            required: true,
-            type: :string,
             short: 'f'
         opt :streams_prefix,
             'E.g. 2016/08',
             default: Time.now.strftime('%Y/%m/%d'),
             short: 's'
+        opt :timestamp,
+            'Include the timestamp from the event metadata in the output',
+            short: 't',
+            default: false
+        opt :show_request_id,
+            'Show the request ID in every log message',
+            short: 'r',
+            default: false
+        opt :log_level,
+            'Lowest log level to show',
+            default: 'INFO',
+            short: 'l'
       end
     end
 
     def chunk_events(streams_chunk, token = nil)
-      response = cloudwatchlogs.filter_log_events(
+      parameters = {
         log_group_name: opts[:group],
         log_stream_names: streams_chunk,
-        filter_pattern: opts[:filter_pattern],
         next_token: token
-      )
+      }
+      parameters[:filter_pattern] = opts[:filter_pattern] if opts[:filter_pattern]
+      response = cloudwatchlogs.filter_log_events parameters
       collector = response.events
       collector += chunk_events(streams_chunk, response.next_token) if response.next_token
       collector
@@ -36,9 +50,39 @@ module AwsUtils
 
     def log_events
       # puts "Filtering from #{streams.count} streams in #{streams.count / 50 + 1} chunks"
-      streams.each_slice(50).to_a.each_with_object([]) do |streams_chunk, collector|
-        collector += chunk_events(streams_chunk)
+      collector = []
+      streams.each_slice(50) { |streams_chunk| collector += chunk_events(streams_chunk) }
+
+      puts 'No events found' if collector.empty?
+
+      collector.sort_by(&:timestamp)
+    end
+
+    def print_events
+      log_events.each do |ev|
+        if ev.message !~ /^\[(INFO|DEBUG|WARNING|ERROR|NOTICE)\]/ # Check if the message is in the standard format
+          puts((opts[:timestamp] ? Time.at(ev.timestamp / 1e3).iso8601(3) + ' ' : '') + ev.message)
+          next
+        end
+
+        msg_parts = ev.message.split("\t")
+        level      = msg_parts[0].scan(/\[(\w*)\]/)[-1][0]
+        timestamp  = msg_parts[1]
+        request_id = msg_parts[2]
+        message    = msg_parts[3..-1].join("\t")
+
+        next unless show_logentry? level
+
+        print Time.at(ev.timestamp / 1e3).iso8601(3) if opts[:timestamp]
+        printf('%-25s %-10s', timestamp, "[#{level}]")
+        printf('%-37s', request_id) if opts[:show_request_id]
+        print(message)
       end
+    end
+
+    def show_logentry?(level)
+      return true unless LOG_LEVELS.include? level
+      LOG_LEVELS.index(level.upcase) >= LOG_LEVELS.index(opts[:log_level].upcase)
     end
 
     def streams(token = nil)
