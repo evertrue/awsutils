@@ -32,6 +32,9 @@ module AwsUtils
             'Lowest log level to show',
             default: 'INFO',
             short: 'l'
+        opt :show_stream_name,
+            'Include the name of the log stream on the output line',
+            default: false
       end
     end
 
@@ -61,6 +64,7 @@ module AwsUtils
     def print_events
       log_events.each do |ev|
         if ev.message !~ /^\[(INFO|DEBUG|WARNING|ERROR|NOTICE)\]/ # Check if the message is in the standard format
+          print "#{ev.log_stream_name}: " if opts[:show_stream_name]
           print Time.at(ev.timestamp / 1e3).iso8601(3) + ' ' if opts[:timestamp]
           print ev.message
           next
@@ -74,6 +78,7 @@ module AwsUtils
 
         next unless show_logentry? level
 
+        print "#{ev.log_stream_name}: " if opts[:show_stream_name]
         print Time.at(ev.timestamp / 1e3).iso8601(3) if opts[:timestamp]
         printf('%-24s %-10s', timestamp, "[#{level}]")
         printf('%-37s', request_id) if opts[:show_request_id]
