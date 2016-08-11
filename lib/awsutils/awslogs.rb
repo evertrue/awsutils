@@ -61,7 +61,8 @@ module AwsUtils
     def print_events
       log_events.each do |ev|
         if ev.message !~ /^\[(INFO|DEBUG|WARNING|ERROR|NOTICE)\]/ # Check if the message is in the standard format
-          puts((opts[:timestamp] ? Time.at(ev.timestamp / 1e3).iso8601(3) + ' ' : '') + ev.message)
+          print Time.at(ev.timestamp / 1e3).iso8601(3) + ' ' if opts[:timestamp]
+          print ev.message
           next
         end
 
@@ -74,7 +75,7 @@ module AwsUtils
         next unless show_logentry? level
 
         print Time.at(ev.timestamp / 1e3).iso8601(3) if opts[:timestamp]
-        printf('%-25s %-10s', timestamp, "[#{level}]")
+        printf('%-24s %-10s', timestamp, "[#{level}]")
         printf('%-37s', request_id) if opts[:show_request_id]
         print(message)
       end
