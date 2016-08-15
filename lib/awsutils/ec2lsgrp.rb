@@ -49,8 +49,23 @@ module AwsUtils
       if refs.empty?
         puts 'No references'
       else
-        puts "References: #{refs.keys.join(', ')}"
-        puts refs.to_yaml if opts[:verbose]
+        print_refs refs
+      end
+    end
+
+    def print_refs(refs)
+      refs.each do |grp, data|
+        print "#{grp} (#{data['groupId']}): "
+        perm_strings = data['references'].map do |perm|
+          if perm['ipProtocol'] == '-1'
+            'all'
+          else
+            "#{perm['ipProtocol']}/#{perm['fromPort']}" +
+              (perm['fromPort'] != perm['toPort'] ? "-#{perm['toPort']}" : '')
+          end
+        end
+        print perm_strings.join ', '
+        puts ''
       end
     end
 
@@ -64,7 +79,7 @@ module AwsUtils
     def group_perm_string(group_perm)
       group_perm.map do |g|
         if g['userId'] == owner_id
-          "#{g['groupId']} (#{group(g['groupId']).name})"
+          "#{g['groupId']} (#{group(g['groupId']).group_name})"
         else
           "#{g['groupId']} (#{g['groupName']}, owner: #{g['userId']})"
         end
