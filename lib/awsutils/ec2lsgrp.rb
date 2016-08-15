@@ -40,9 +40,9 @@ module AwsUtils
     end
 
     def run
-      fail ArgumentError, 'Please specify a security group' unless search
+      raise ArgumentError, 'Please specify a security group' unless search
       unless group_o = group(search) # rubocop:disable Lint/AssignmentInCondition
-        fail GroupDoesNotExist
+        raise GroupDoesNotExist
       end
       return group_details(group_o) unless opts[:list_refs]
       refs = references(group_o.group_id)
