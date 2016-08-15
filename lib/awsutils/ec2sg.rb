@@ -1,46 +1,42 @@
-require 'rubygems'
 require 'fog/aws'
 
 module AwsUtils
   class Ec2SecurityGroup
     def connection
-      @connection ||= begin
-        options = {}
+      @connection ||= Fog::Compute::AWS.new
+    end
 
-        if ENV['AWS_ACCESS_KEY']
-          options = {
-            aws_access_key_id: ENV['AWS_ACCESS_KEY'],
-            aws_secret_access_key: ENV['AWS_SECRET_KEY']
+    def references(search_string)
+      search =
+        if search_string =~ /^sg-/
+          {
+            id: search_string,
+            name: groups.find { |gr| gr.group_id == search_string }.name
+          }
+        else
+          {
+            id: groups.find { |gr| gr.name == search_string }.group_id,
+            name: search_string
           }
         end
 
-        Fog::Compute::AWS.new options
-      end
-    end
-
-    def references(search)
-      if search =~ /^sg-/
-        search_id = search
-      else
-        search_id = groups.find { |g| g.name == search }.group_id
-      end
-
       groups.each_with_object({}) do |grp, m|
-        assoc_p = grp.ip_permissions.select do |ip_perm|
-          !ip_perm['groups'].select { |src_grp|
-            src_grp['groupName'] == search ||
-              src_grp['groupId'] == search_id
-          }.empty?
+        permission_references = grp.ip_permissions.select do |ip_perm|
+          ip_perm['groups'].find do |pair|
+            pair['groupId'] == search[:id] ||
+              pair['groupName'] == search[:name]
+          end
         end
-        if assoc_p.empty?
-          next
-        else
-          m[grp.name] = {
+
+        next if permission_references.empty?
+
+        m[grp.name] = { 'groupId' => grp.group_id }
+        m[grp.name]['references'] = permission_references.map do |pr|
+          {
             'groupId' => grp.group_id,
-            'ipPermissions' => assoc_p.map do |ap|
-              ap.delete('ipRanges')
-              ap
-            end
+            'ipProtocol' => pr['ipProtocol'],
+            'fromPort' => pr['fromPort'],
+            'toPort' => pr['toPort']
           }
         end
       end
@@ -57,7 +53,7 @@ module AwsUtils
         server.tags['Name'] ? server.tags['Name'] : server.id
       end.compact
 
-      return false unless servers_using_group.length > 0
+      return false unless servers_using_group.empty?
       print 'The following servers are still using this group: '
       puts servers_using_group.join(',')
 
