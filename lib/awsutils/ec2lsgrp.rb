@@ -79,7 +79,7 @@ module AwsUtils
     def group_perm_string(group_perm)
       group_perm.map do |g|
         if g['userId'] == owner_id
-          "#{g['groupId']} (#{group(g['groupId']).group_name})"
+          "#{g['groupId']} (#{group(g['groupId']).name})"
         else
           "#{g['groupId']} (#{g['groupName']}, owner: #{g['userId']})"
         end
