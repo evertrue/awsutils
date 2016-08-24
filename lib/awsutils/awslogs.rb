@@ -28,6 +28,10 @@ module AwsUtils
             'Show the request ID in every log message',
             short: 'r',
             default: false
+        opt :request_id,
+            'Print only messages with a specific request ID',
+            short: 'R',
+            type: :string
         opt :log_level,
             'Lowest log level to show',
             default: 'INFO',
@@ -61,8 +65,13 @@ module AwsUtils
       collector.sort_by(&:timestamp)
     end
 
+    def filtered_log_events
+      return log_events unless opts[:request_id]
+      log_events.select { |event| event.message =~ /\b#{opts[:request_id]}\b/ }
+    end
+
     def print_events
-      log_events.each do |ev|
+      filtered_log_events.each do |ev|
         if ev.message !~ /^\[(INFO|DEBUG|WARNING|ERROR|NOTICE)\]/ # Check if the message is in the standard format
           print "#{ev.log_stream_name}: " if opts[:show_stream_name]
           print Time.at(ev.timestamp / 1e3).iso8601(3) + ' ' if opts[:timestamp]
