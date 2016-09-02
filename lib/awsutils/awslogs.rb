@@ -8,17 +8,21 @@ module AwsUtils
 
     def opts
       @opts ||= Trollop.options do
+        opt :age,
+            'Max age in seconds',
+            short: 'a',
+            type: Integer
         opt :group,
             'Log group (e.g. /aws/lambda/sf-updater)',
             required: true,
-            type: :string,
+            type: String,
             short: 'g'
         opt :filter_pattern,
             'See: http://docs.aws.amazon.com/AmazonCloudWatch/latest/DeveloperGuide/FilterAndPatternSyntax.html',
             short: 'f'
         opt :streams_prefix,
             'E.g. 2016/08',
-            default: Time.now.strftime('%Y/%m/%d'),
+            type: String,
             short: 's'
         opt :timestamp,
             'Include the timestamp from the event metadata in the output',
@@ -46,6 +50,7 @@ module AwsUtils
       parameters = {
         log_group_name: opts[:group],
         log_stream_names: streams_chunk,
+        start_time: max_age_ts,
         next_token: token
       }
       parameters[:filter_pattern] = opts[:filter_pattern] if opts[:filter_pattern]
@@ -76,6 +81,7 @@ module AwsUtils
           print "#{ev.log_stream_name}: " if opts[:show_stream_name]
           print Time.at(ev.timestamp / 1e3).iso8601(3) + ' ' if opts[:timestamp]
           print ev.message
+          print "\n" if ev.message[-1] != "\n"
           next
         end
 
@@ -101,14 +107,20 @@ module AwsUtils
     end
 
     def streams(token = nil)
-      response = cloudwatchlogs.describe_log_streams(
+      parameters = {
         log_group_name: opts[:group],
-        log_stream_name_prefix: opts[:streams_prefix],
         next_token: token
-      )
-      collector = response.log_streams.map(&:log_stream_name)
+      }
+      parameters[:log_stream_name_prefix] = opts[:streams_prefix] if opts[:streams_prefix]
+      response = cloudwatchlogs.describe_log_streams parameters
+      collector = response.log_streams.select { |s| s.last_event_timestamp > max_age_ts }.map(&:log_stream_name)
       collector += streams(response.next_token) if response.next_token
       collector
+    end
+
+    def max_age_ts
+      return 0 unless opts[:age]
+      (Time.at(Time.now - opts[:age]).to_f * 1_000).to_i
     end
 
     def cloudwatchlogs
