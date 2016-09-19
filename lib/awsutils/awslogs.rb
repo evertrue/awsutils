@@ -19,6 +19,7 @@ module AwsUtils
             short: 'g'
         opt :filter_pattern,
             'See: http://docs.aws.amazon.com/AmazonCloudWatch/latest/DeveloperGuide/FilterAndPatternSyntax.html',
+            type: String,
             short: 'f'
         opt :streams_prefix,
             'E.g. 2016/08',
