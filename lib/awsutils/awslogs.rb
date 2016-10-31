@@ -4,15 +4,31 @@ require 'time'
 
 class LogGroupNotFoundError < StandardError; end
 class MultipleGroupsError < StandardError; end
+class TooManyEventsError < StandardError; end
+class TooManyStreamsError < StandardError; end
+class NoStreamsError < StandardError; end
 
 module AwsUtils
   class AwsLogs
     LOG_LEVELS = %w(TRACE DEBUG INFO NOTICE WARNING ERROR FATAL).freeze
+    MAX_EVENTS = 100000.freeze
+    MAX_STREAMS = 100.freeze
 
     def run
       print_events
+    rescue TooManyEventsError
+      puts "Too many log events to process (MAX: #{MAX_EVENTS}). " \
+           'Please try filtering the output with -f'
+      exit 3
+    rescue TooManyStreamsError
+      puts "Too many streams to process (MAX: #{MAX_STREAMS}). " \
+           'Please try filtering the output with -s'
+      exit 3
     rescue LogGroupNotFoundError
       puts "No log groups found starting with #{opts[:group]}"
+      exit 1
+    rescue NoStreamsError
+      puts 'Streams filter did not return any streams'
       exit 1
     rescue MultipleGroupsError => e
       puts e.message
@@ -85,6 +101,7 @@ module AwsUtils
       response = cloudwatchlogs.filter_log_events parameters
       collector = response.events
       collector += chunk_events(streams_chunk, response.next_token) if response.next_token
+      raise TooManyEventsError if collector.count > MAX_EVENTS
       collector
     end
 
@@ -141,8 +158,14 @@ module AwsUtils
       }
       parameters[:log_stream_name_prefix] = opts[:streams_prefix] if opts[:streams_prefix]
       response = cloudwatchlogs.describe_log_streams parameters
-      collector = response.log_streams.select { |s| s.last_event_timestamp > max_age_ts }.map(&:log_stream_name)
+      collector =
+        response
+        .log_streams
+        .select { |s| s.last_event_timestamp > max_age_ts }
+        .map(&:log_stream_name)
+      fail NoStreamsError if token.nil? && collector.count == 0
       collector += streams(response.next_token) if response.next_token
+      fail TooManyStreamsError if collector.count > MAX_STREAMS
       collector
     end
 
