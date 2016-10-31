@@ -161,7 +161,7 @@ module AwsUtils
       collector =
         response
         .log_streams
-        .select { |s| s.last_event_timestamp > max_age_ts }
+        .select { |s| s.last_event_timestamp && s.last_event_timestamp > max_age_ts }
         .map(&:log_stream_name)
       fail NoStreamsError if token.nil? && collector.count == 0
       collector += streams(response.next_token) if response.next_token
