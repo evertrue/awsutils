@@ -6,6 +6,12 @@ module AwsUtils
   class AwsLogs
     LOG_LEVELS = %w(TRACE DEBUG INFO NOTICE WARNING ERROR FATAL).freeze
 
+    def run
+      print_events
+    end
+
+    private
+
     def opts
       @opts ||= Trollop.options do
         opt :age,

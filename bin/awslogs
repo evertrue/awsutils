@@ -10,5 +10,4 @@
 require 'awsutils/version'
 require 'awsutils/awslogs'
 
-awslogs = AwsUtils::AwsLogs.new
-awslogs.print_events
+AwsUtils::AwsLogs.new.run
