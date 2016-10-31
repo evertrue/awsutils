@@ -2,12 +2,21 @@ require 'trollop'
 require 'aws-sdk'
 require 'time'
 
+class LogGroupNotFoundError < StandardError; end
+class MultipleGroupsError < StandardError; end
+
 module AwsUtils
   class AwsLogs
     LOG_LEVELS = %w(TRACE DEBUG INFO NOTICE WARNING ERROR FATAL).freeze
 
     def run
       print_events
+    rescue LogGroupNotFoundError
+      puts "No log groups found starting with #{opts[:group]}"
+      exit 1
+    rescue MultipleGroupsError => e
+      puts e.message
+      exit 2
     end
 
     private
@@ -53,9 +62,21 @@ module AwsUtils
       end
     end
 
+    def log_group_name
+      @log_group ||= begin
+        r = cloudwatchlogs.describe_log_groups log_group_name_prefix: opts[:group]
+        return r.log_groups.first.log_group_name if r.log_groups.count == 1
+        raise LogGroupNotFoundError if r.log_groups.empty?
+        err_msg = "Group filter #{opts[:group]} found multiple groups:\n\n"
+        err_msg += r.log_groups.map(&:log_group_name).join("\n")
+        err_msg += "\nMore than 50 log groups returned. Only showed the first 50." if r.next_token
+        raise MultipleGroupsError, err_msg
+      end
+    end
+
     def chunk_events(streams_chunk, token = nil)
       parameters = {
-        log_group_name: opts[:group],
+        log_group_name: log_group_name,
         log_stream_names: streams_chunk,
         start_time: max_age_ts,
         next_token: token
@@ -115,7 +136,7 @@ module AwsUtils
 
     def streams(token = nil)
       parameters = {
-        log_group_name: opts[:group],
+        log_group_name: log_group_name,
         next_token: token
       }
       parameters[:log_stream_name_prefix] = opts[:streams_prefix] if opts[:streams_prefix]
