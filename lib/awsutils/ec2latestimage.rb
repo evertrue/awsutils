@@ -1,5 +1,6 @@
 require 'json'
 require 'net/http'
+require 'trollop'
 # require 'aws-sdk' # see the comment on `image_details` below
 
 module AwsUtils
@@ -13,7 +14,7 @@ module AwsUtils
         )
         parse_releases_array(resp['aaData']).select do |rel|
           rel[:region] == 'us-east-1' &&
-          rel[:distro_version] == '14.04 LTS' &&
+          rel[:distro_version] == "#{opts[:release]}" &&
           rel[:arch] == 'amd64'
         end
       end
@@ -79,6 +80,10 @@ module AwsUtils
 
     def connection
       @connection ||= Aws::EC2::Client.new
+    end
+
+    def opts
+      @opts ||= Trollop.options { opt :release, 'Ubuntu release', short: 'r', default: '14.04 LTS' }
     end
   end
 end
