@@ -7,12 +7,35 @@ module AwsUtils
   class Ec2LatestImage
     def releases
       @releases ||= begin
-        resp = JSON.parse(
-          Net::HTTP.get(
-            URI("http://cloud-images.ubuntu.com/locator/ec2/releasesTable?_=#{(Time.now.to_f*1000).to_i}")
-          ).sub(/\],\n\]/, "]\n]")
-        )
-        parse_releases_array(resp['aaData']).select do |rel|
+        parsed_releases =
+          if opts[:ownedbyme]
+            fail 'AWS_OWNER_ID not defined' unless ENV['AWS_OWNER_ID']
+
+            require 'aws-sdk'
+
+            ubuntu_images =
+              connection.describe_images(owners: [ENV['AWS_OWNER_ID']]).images.select do |image|
+                image.name =~ %r{^ubuntu\/}
+              end
+
+            ubuntu_images.map do |image|
+              {
+                ami: image.image_id,
+                distro_version: image.name.split('/')[3].split('-')[2],
+                release: image.name.split('/')[3].split('-')[5..-1].join('-'),
+                type: image.name.split('/')[2]
+              }
+            end
+          else
+            resp = JSON.parse(
+              Net::HTTP.get(
+                URI("http://cloud-images.ubuntu.com/locator/ec2/releasesTable?_=#{(Time.now.to_f*1000).to_i}")
+              ).sub(/\],\n\]/, "]\n]")
+            )
+            parse_releases_array(resp['aaData'])
+          end
+
+        parsed_releases.select do |rel|
           rel[:region] == 'us-east-1' &&
           rel[:distro_version] == "#{opts[:release]}" &&
           rel[:arch] == 'amd64'
@@ -83,7 +106,10 @@ module AwsUtils
     end
 
     def opts
-      @opts ||= Trollop.options { opt :release, 'Ubuntu release', short: 'r', default: '14.04 LTS' }
+      @opts ||= Trollop.options do
+        opt :release, 'Ubuntu release', short: 'r', default: '14.04 LTS'
+        opt :ownedbyme, 'Images owned by $AWS_OWNER_ID', short: 'o', default: false
+      end
     end
   end
 end
