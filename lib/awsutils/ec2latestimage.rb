@@ -24,6 +24,7 @@ module AwsUtils
                 distro_version: image.name.split('/')[3].split('-')[2],
                 release: image.name.split('/')[3].split('-')[5..-1].join('-'),
                 type: image.name.split('/')[2]
+                region: opts[:region] # overriding this because images API doesn't list a region
               }
             end
           else
@@ -36,7 +37,7 @@ module AwsUtils
           end
 
         parsed_releases.select do |rel|
-          rel[:region] == 'us-east-1' &&
+          rel[:region] == opts[:region] &&
           rel[:distro_version] == "#{opts[:release]}" &&
           rel[:arch] == 'amd64'
         end
@@ -109,6 +110,7 @@ module AwsUtils
       @opts ||= Trollop.options do
         opt :release, 'Ubuntu release', short: 'r', default: '14.04 LTS'
         opt :ownedbyme, 'Images owned by $AWS_OWNER_ID', short: 'o', default: false
+        opt :region, 'Image region', short: 'R', default: 'us-east-1'
       end
     end
   end
