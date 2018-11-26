@@ -24,6 +24,7 @@ module AwsUtils
                 distro_version: image.name.split('/')[3].split('-')[2],
                 release: image.name.split('/')[3].split('-')[5..-1].join('-'),
                 type: image.name.split('/')[2] + ':' + image.root_device_type,
+                arch: image.architecture,
                 region: opts[:region] # overriding this because images API doesn't list a region
               }
             end
@@ -39,7 +40,7 @@ module AwsUtils
         parsed_releases.select do |rel|
           rel[:region] == opts[:region] &&
           rel[:distro_version] == "#{opts[:release]}" &&
-          rel[:arch] == 'amd64'
+          %w(amd64 x86_64).include?(rel[:arch])
         end
       end
     end
