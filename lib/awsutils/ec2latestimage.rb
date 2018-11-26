@@ -23,7 +23,7 @@ module AwsUtils
                 ami: image.image_id,
                 distro_version: image.name.split('/')[3].split('-')[2],
                 release: image.name.split('/')[3].split('-')[5..-1].join('-'),
-                type: image.name.split('/')[2]
+                type: image.name.split('/')[2] + ':' + image.root_device_type,
                 region: opts[:region] # overriding this because images API doesn't list a region
               }
             end
@@ -52,18 +52,18 @@ module AwsUtils
 
     def print_releases
       # Print a header
-      printf("%-13s %-10s %-9s %-20s\n", 'ID', 'Version', 'Release', 'Type')
+      printf("%-13s %-10s %-20s %-9s\n", 'ID', 'Version', 'Type', 'Release')
 
-      puts('-' * 53)
+      puts('-' * 72)
 
       # Print the releases
       releases.each do |rel|
         printf(
-          "%-13s %-10s %-9s %-20s\n",
+          "%-13s %-10s %-20s %-9s\n",
           rel[:ami],
           rel[:distro_version],
-          rel[:release],
-          rel[:type]
+          rel[:type],
+          rel[:release]
         )
       end
     end
