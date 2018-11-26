@@ -109,7 +109,7 @@ module AwsUtils
 
     def opts
       @opts ||= Trollop.options do
-        opt :release, 'Ubuntu release', short: 'r', default: '14.04 LTS'
+        opt :release, 'Ubuntu release', short: 'r', default: '16.04 LTS'
         opt :ownedbyme, 'Images owned by $AWS_OWNER_ID', short: 'o', default: false
         opt :region, 'Image region', short: 'R', default: 'us-east-1'
       end
