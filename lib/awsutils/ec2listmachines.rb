@@ -23,13 +23,7 @@ end
 module AwsUtils
   class Ec2ListMachines
     def connect
-      @connect = Aws::EC2::Client.new
-      if $DEBUG
-        puts 'Inspect connection result:'
-        puts connect.inspect
-      end
-
-      @connect
+      @connect ||= Aws::EC2::Client.new
     end
 
     def get_servers
