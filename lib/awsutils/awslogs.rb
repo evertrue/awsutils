@@ -79,7 +79,7 @@ module AwsUtils
     end
 
     def log_group_name
-      @log_group ||= begin
+      @log_group_name ||= begin
         r = cloudwatchlogs.describe_log_groups log_group_name_prefix: opts[:group]
         return r.log_groups.first.log_group_name if r.log_groups.count == 1
         raise LogGroupNotFoundError if r.log_groups.empty?
