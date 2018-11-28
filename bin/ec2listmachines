@@ -10,4 +10,4 @@ require 'rubygems'
 require 'awsutils/version'
 require 'awsutils/ec2listmachines'
 
-AwsUtils::Ec2ListMachines.new
+AwsUtils::Ec2ListMachines.new.run
