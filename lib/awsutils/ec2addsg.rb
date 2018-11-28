@@ -114,7 +114,7 @@ module AwsUtils
         rules.select { |rule| rule['dest'] }.each do |rule|
           add_rule_to_other_group(rule)
         end
-      rescue => e
+      rescue StandardError => e
         connection.delete_security_group(nil, g_obj.group_id)
         raise e
       end
