@@ -48,6 +48,8 @@ module AwsUtils
       @ec2 ||= Fog::Compute.new(provider: 'AWS')
     end
 
+    # TODO: Naming/MemoizedInstanceVariableName: Memoized variable @instance_ids does
+    # not match method name instances.
     def instances
       @instance_ids ||= begin
         if $DEBUG
