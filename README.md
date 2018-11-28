@@ -1,5 +1,6 @@
 # Awsutils
 [![Travis (.com)](https://img.shields.io/travis/com/evertrue/awsutils.svg)](https://travis-ci.com/evertrue/awsutils)
+[![Gem](https://img.shields.io/gem/v/awsutils.svg)](https://rubygems.org/gems/awsutils)
 
 A set of useful tools for interacting with Amazon Web Services (AWS)
 
