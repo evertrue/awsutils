@@ -1,6 +1,6 @@
 require 'json'
 require 'net/http'
-require 'trollop'
+require 'optimist'
 # require 'aws-sdk' # see the comment on `image_details` below
 
 module AwsUtils
@@ -108,7 +108,7 @@ module AwsUtils
     end
 
     def opts
-      @opts ||= Trollop.options do
+      @opts ||= Optimist.options do
         opt :release, 'Ubuntu release', short: 'r', default: '16.04 LTS'
         opt :ownedbyme, 'Images owned by $AWS_OWNER_ID', short: 'o', default: false
         opt :region, 'Image region', short: 'R', default: 'us-east-1'

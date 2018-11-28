@@ -1,6 +1,6 @@
 require 'rubygems'
 require 'fog'
-require 'trollop'
+require 'optimist'
 require 'json'
 
 module AwsUtils
@@ -10,7 +10,7 @@ module AwsUtils
     end # def connection
 
     def parse_opts
-      opts = Trollop.options do
+      opts = Optimist.options do
         opt :format, 'Output format', default: 'table'
       end
       opts[:name] = ARGV.last

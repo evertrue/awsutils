@@ -1,6 +1,6 @@
 require 'rubygems'
 require 'fog'
-require 'trollop'
+require 'optimist'
 
 module AwsUtils
 
@@ -11,12 +11,12 @@ module AwsUtils
     end # def connection
 
     def parse_opts
-      opts = Trollop::options do
+      opts = Optimist::options do
         opt :name, "The name", :short => 'n', :type => String, :required => true
         opt :type, "Record type (e.g. CNAME or A)", :short => 'T', :type => String, :required => true
         opt :ttl, "Time-to-live", :short => 't', :type => String, :default => "300"
         opt :value, "Record Value", :short => 'v', :type => String, :required => true
-      end # opts = Trollop::options
+      end # opts = Optimist::options
     end # def parse_opts
 
     def initialize

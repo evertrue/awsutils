@@ -1,5 +1,5 @@
 require 'awsutils/ec2sg'
-require 'trollop'
+require 'optimist'
 
 gem 'fog-aws', '>= 0.7.6'
 
@@ -87,7 +87,7 @@ module AwsUtils
     end
 
     def parse_opts
-      Trollop.options do
+      Optimist.options do
         opt :list_refs,
             'List groups referencing this group',
             short: 'r',

@@ -1,4 +1,4 @@
-require 'trollop'
+require 'optimist'
 require 'aws-sdk'
 require 'time'
 
@@ -38,7 +38,7 @@ module AwsUtils
     private
 
     def opts
-      @opts ||= Trollop.options do
+      @opts ||= Optimist.options do
         opt :age,
             'Max age in seconds',
             short: 'a',

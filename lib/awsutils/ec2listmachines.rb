@@ -1,5 +1,5 @@
 require 'rubygems'
-require 'trollop'
+require 'optimist'
 require 'fog'
 
 gem 'fog', '>= 1.6.0'
@@ -380,7 +380,7 @@ module AwsUtils
     end
 
     def parse_opts
-      opts = Trollop.options do
+      opts = Optimist.options do
         opt :sort, 'Sort order', short: 's', type: String
         opt :state, 'State', short: 'S', type: String
         opt :flavor, 'Flavor', short: 'F', type: String

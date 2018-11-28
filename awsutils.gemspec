@@ -29,6 +29,6 @@ Gem::Specification.new do |spec|
   spec.add_dependency 'facets', '~> 2.9'
   spec.add_dependency 'rainbow', '~> 2.0'
   spec.add_dependency 'fog-aws', '~> 0.11.0'
-  spec.add_dependency 'trollop'
+  spec.add_dependency 'optimist' '~> 3.0'
   spec.add_dependency 'aws-sdk'
 end

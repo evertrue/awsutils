@@ -1,7 +1,7 @@
 #!/usr/bin/ruby
 
 require 'awsutils/ec2sg'
-require 'trollop'
+require 'optimist'
 
 module AwsUtils
   class Ec2AddSecurityGroup < Ec2SecurityGroup
@@ -167,7 +167,7 @@ module AwsUtils
     def parse_opts
       fail 'AWS_OWNER_ID is not set!' unless ENV['AWS_OWNER_ID']
 
-      @opts = Trollop.options do
+      @opts = Optimist.options do
         opt :security_group,
             'New Security Group Name',
             short: 'N',
