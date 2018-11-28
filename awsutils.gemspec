@@ -10,8 +10,13 @@ Gem::Specification.new do |spec|
   spec.email         = ['eric.rubygems@herot.com']
   spec.description   = %q{A set of tools for interacting with AWS}
   spec.summary       = %q{A set of tools for interacting with AWS (summary)}
-  spec.homepage      = 'http://github.com/eherot'
+  spec.homepage      = 'http://github.com/evertrue/awsutils'
   spec.license       = 'MIT'
+  spec.metadata      = {
+    'bug_tracker_uri' => 'https://github.com/evertrue/awsutils/issues',
+    'changelog_uri'   => 'https://github.com/evertrue/awsutils/releases',
+    'source_code_uri' => 'https://github.com/evertrue/awsutils'
+  }
 
   spec.files         = `git ls-files`.split($RS)
   spec.executables    = spec.files.grep(/^bin\//) { |f| File.basename(f) }
