@@ -14,7 +14,7 @@ class String
   def title_case
     underscore.split('_').map do |word|
       # Recognize certain special cases (e.g. acronyms)
-      if %w(iam ebs id dns vpc).include? word.downcase
+      if %w[iam ebs id dns vpc].include? word.downcase
         word.upcase
       elsif word.casecmp('ids').zero?
         'IDs'
@@ -65,6 +65,7 @@ module AwsUtils
               next unless server.tags.key?('Name') \
                 && (server.tags['Name'] != '') \
                 && (/#{search_term}/i =~ server.tags['Name'])
+
               m << server.id
             end
           end
@@ -131,8 +132,7 @@ module AwsUtils
              'ID',
              'Group',
              'Flavor',
-             'State'
-            )
+             'State')
 
       instance_ids.each do |instance_id|
         inst = ec2.servers.get(instance_id)
@@ -157,16 +157,15 @@ module AwsUtils
       reset_color = "\033[0m"
 
       print "#{key_color}#{key.to_s.title_case}:#{reset_color} "
-      case
-      when value.respond_to?(:to_sym)
+      if value.respond_to?(:to_sym)
         puts value
-      when value.respond_to?(:key?)
+      elsif value.respond_to?(:key?)
         puts
         value.each { |k, v| printkv "  #{k}", v }
-      when (
-        value.respond_to?(:join) &&
-        value.reject { |item| item.respond_to?(:to_sym) }.empty? # If value only contains strings, do this
-      )
+      # If value only contains strings, do this
+      elsif value.respond_to?(:join) &&
+            value.reject { |item| item.respond_to?(:to_sym) }.empty?
+
         value.join(', ')
       else
         puts value.inspect
@@ -246,9 +245,7 @@ module AwsUtils
 
               end
 
-              if vol != instance.block_device_mapping.last
-                puts "\t---------------------------------------"
-              end
+              puts "\t---------------------------------------" if vol != instance.block_device_mapping.last
             end
 
           when :client_token
@@ -262,6 +259,7 @@ module AwsUtils
               group = ec2.security_groups.get(group_id)
 
               next unless group
+
               puts "#{key_color}Security Group:#{reset_color} #{group.name}"
               puts "\t#{key_color}Description:#{reset_color} #{group.description}"
               puts "\t#{key_color}ID:#{reset_color} #{group.group_id}"
@@ -285,17 +283,11 @@ module AwsUtils
 
             puts "\t#{key_color}Name:#{reset_color} #{image_obj.name}" if defined?(image_obj.name)
 
-            if defined?(image_obj.description)
-              puts "\t#{key_color}Description:#{reset_color} #{image_obj.description}"
-            end
+            puts "\t#{key_color}Description:#{reset_color} #{image_obj.description}" if defined?(image_obj.description)
 
-            if defined?(image_obj.location)
-              puts "\t#{key_color}Location:#{reset_color} #{image_obj.location}"
-            end
+            puts "\t#{key_color}Location:#{reset_color} #{image_obj.location}" if defined?(image_obj.location)
 
-            if defined?(image_obj.architecture)
-              puts "\t#{key_color}Arch:#{reset_color} #{image_obj.architecture}"
-            end
+            puts "\t#{key_color}Arch:#{reset_color} #{image_obj.architecture}" if defined?(image_obj.architecture)
 
             if defined?(image_obj.tags) && (image_obj.tags != {})
               puts "\t#{key_color}Tags:#{reset_color}"
@@ -323,7 +315,7 @@ module AwsUtils
             puts "#{key_color}State:#{reset_color} #{state_color}#{instance.state}#{reset_color}"
           when :state_reason
             if instance.state_reason.any?
-              puts "#{key_color}State Reason Code:#{reset_color} #{instance.state_reason["Code"]}"
+              puts "#{key_color}State Reason Code:#{reset_color} #{instance.state_reason['Code']}"
             elsif $DEBUG
               puts "#{key_color}State Reason Code:#{reset_color} N/A"
             end

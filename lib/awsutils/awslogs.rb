@@ -10,9 +10,9 @@ class NoStreamsError < StandardError; end
 
 module AwsUtils
   class AwsLogs
-    LOG_LEVELS = %w(TRACE DEBUG INFO NOTICE WARNING ERROR FATAL).freeze
-    MAX_EVENTS = 100000.freeze
-    MAX_STREAMS = 100.freeze
+    LOG_LEVELS = %w[TRACE DEBUG INFO NOTICE WARNING ERROR FATAL].freeze
+    MAX_EVENTS = 100_000
+    MAX_STREAMS = 100
 
     def run
       print_events
@@ -83,6 +83,7 @@ module AwsUtils
         r = cloudwatchlogs.describe_log_groups log_group_name_prefix: opts[:group]
         return r.log_groups.first.log_group_name if r.log_groups.count == 1
         raise LogGroupNotFoundError if r.log_groups.empty?
+
         err_msg = "Group filter #{opts[:group]} found multiple groups:\n\n"
         err_msg += r.log_groups.map(&:log_group_name).join("\n")
         err_msg += "\nMore than 50 log groups returned. Only showed the first 50." if r.next_token
@@ -102,6 +103,7 @@ module AwsUtils
       collector = response.events
       collector += chunk_events(streams_chunk, response.next_token) if response.next_token
       raise TooManyEventsError if collector.count > MAX_EVENTS
+
       collector
     end
 
@@ -117,12 +119,14 @@ module AwsUtils
 
     def filtered_log_events
       return log_events unless opts[:request_id]
+
       log_events.select { |event| event.message =~ /\b#{opts[:request_id]}\b/ }
     end
 
     def print_events
       filtered_log_events.each do |ev|
-        if ev.message !~ /^\[(INFO|DEBUG|WARNING|ERROR|NOTICE)\]/ # Check if the message is in the standard format
+        # Check if the message is in the standard format
+        if ev.message !~ /^\[(INFO|DEBUG|WARNING|ERROR|NOTICE)\]/
           print "#{ev.log_stream_name}: " if opts[:show_stream_name]
           print Time.at(ev.timestamp / 1e3).iso8601(3) + ' ' if opts[:timestamp]
           print ev.message
@@ -148,6 +152,7 @@ module AwsUtils
 
     def show_logentry?(level)
       return true unless LOG_LEVELS.include? level
+
       LOG_LEVELS.index(level.upcase) >= LOG_LEVELS.index(opts[:log_level].upcase)
     end
 
@@ -163,14 +168,17 @@ module AwsUtils
         .log_streams
         .select { |s| s.last_event_timestamp && s.last_event_timestamp > max_age_ts }
         .map(&:log_stream_name)
-      fail NoStreamsError if token.nil? && collector.count == 0
+      raise NoStreamsError if token.nil? && collector.count.zero?
+
       collector += streams(response.next_token) if response.next_token
-      fail TooManyStreamsError if collector.count > MAX_STREAMS
+      raise TooManyStreamsError if collector.count > MAX_STREAMS
+
       collector
     end
 
     def max_age_ts
       return 0 unless opts[:age]
+
       (Time.at(Time.now - opts[:age]).to_f * 1_000).to_i
     end
 

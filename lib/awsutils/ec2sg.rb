@@ -50,10 +50,12 @@ module AwsUtils
       servers_using_group = connection.servers.map do |server|
         next unless server.state != 'terminated' &&
                     server.groups.include?(@opts[:security_group])
-        server.tags['Name'] ? server.tags['Name'] : server.id
+
+        server.tags['Name'] || server.id
       end.compact
 
       return false unless servers_using_group.empty?
+
       print 'The following servers are still using this group: '
       puts servers_using_group.join(',')
 
