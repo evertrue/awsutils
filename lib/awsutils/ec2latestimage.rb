@@ -1,7 +1,7 @@
 require 'json'
 require 'net/http'
 require 'optimist'
-# require 'aws-sdk' # see the comment on `image_details` below
+# require 'aws-sdk-ec2' # see the comment on `image_details` below
 
 module AwsUtils
   class Ec2LatestImage
@@ -11,7 +11,7 @@ module AwsUtils
           if opts[:ownedbyme]
             fail 'AWS_OWNER_ID not defined' unless ENV['AWS_OWNER_ID']
 
-            require 'aws-sdk'
+            require 'aws-sdk-ec2'
 
             ubuntu_images =
               connection.describe_images(owners: [ENV['AWS_OWNER_ID']]).images.select do |image|
