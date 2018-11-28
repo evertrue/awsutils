@@ -202,5 +202,3 @@ module AwsUtils
     end
   end
 end
-
-# AwsUtils::Ec2ListMachines.new.run
