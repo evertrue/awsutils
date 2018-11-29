@@ -141,7 +141,7 @@ module AwsUtils
         f_color = get_flavor_color(inst.flavor_id)
 
         printf(
-          "%-50s %-11s %-12s %-13s #{f_color}%-10s#{reset_color} #{s_color}%s#{reset_color}",
+          "%-50s %-11s %-12s %-13s #{f_color}%-10s#{reset_color} #{s_color}%s#{reset_color}\n",
           inst.tags['Name'],
           inst.availability_zone,
           inst.id,
