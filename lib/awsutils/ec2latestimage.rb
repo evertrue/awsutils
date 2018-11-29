@@ -9,7 +9,7 @@ module AwsUtils
       @releases ||= begin
         parsed_releases =
           if opts[:ownedbyme]
-            fail 'AWS_OWNER_ID not defined' unless ENV['AWS_OWNER_ID']
+            raise 'AWS_OWNER_ID not defined' unless ENV['AWS_OWNER_ID']
 
             require 'aws-sdk-ec2'
 
@@ -31,7 +31,7 @@ module AwsUtils
           else
             resp = JSON.parse(
               Net::HTTP.get(
-                URI("http://cloud-images.ubuntu.com/locator/ec2/releasesTable?_=#{(Time.now.to_f*1000).to_i}")
+                URI("http://cloud-images.ubuntu.com/locator/ec2/releasesTable?_=#{(Time.now.to_f * 1000).to_i}")
               ).sub(/\],\n\]/, "]\n]")
             )
             parse_releases_array(resp['aaData'])
@@ -39,8 +39,8 @@ module AwsUtils
 
         parsed_releases.select do |rel|
           rel[:region] == opts[:region] &&
-          rel[:distro_version] == "#{opts[:release]}" &&
-          %w(amd64 x86_64).include?(rel[:arch])
+            rel[:distro_version] == opts[:release].to_s &&
+            %w[amd64 x86_64].include?(rel[:arch])
         end
       end
     end
@@ -81,23 +81,20 @@ module AwsUtils
     #     images_details.each_with_object({}) { |ami, m| m[ami.image_id] = ami }
     #   end
     # end
-
-    # rubocop:disable Metrics/MethodLength
     def parse_releases_array(releases)
       releases.map do |rel|
         {
-          region:         rel[0],
-          distro_name:    rel[1],
+          region: rel[0],
+          distro_name: rel[1],
           distro_version: rel[2],
-          arch:           rel[3],
-          type:           rel[4],
-          release:        rel[5],
-          ami:            parse_ami_link(rel[6]),
-          aki:            rel[7]
+          arch: rel[3],
+          type: rel[4],
+          release: rel[5],
+          ami: parse_ami_link(rel[6]),
+          aki: rel[7]
         }
       end
     end
-    # rubocop:enable Metrics/MethodLength
 
     def parse_ami_link(link)
       link.match(/launchAmi=(ami-\w{8})/)[1]

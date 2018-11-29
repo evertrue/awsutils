@@ -89,7 +89,8 @@ describe AwsUtils::Ec2LsGrp do
       let(:local_group_obj) do
         group_obj = fog.security_groups.create(
           'description' => '',
-          'name' => local_group_name)
+          'name' => local_group_name
+        )
         fog.security_groups.get_by_id(group_obj.group_id)
       end
 
@@ -99,7 +100,7 @@ describe AwsUtils::Ec2LsGrp do
 
       it 'searches for the group by id' do
         expect(ec2lsgrp).to receive(:group).with(local_group_name)
-          .and_return(local_group_obj)
+                                           .and_return(local_group_obj)
         ec2lsgrp.run
       end
     end

@@ -45,6 +45,7 @@ module AwsUtils
         raise GroupDoesNotExist
       end
       return group_details(group_o) unless opts[:list_refs]
+
       refs = references(group_o.group_id)
       if refs.empty?
         puts 'No references'

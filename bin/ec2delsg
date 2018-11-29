@@ -10,5 +10,5 @@ require 'rubygems'
 require 'awsutils/version'
 require 'awsutils/ec2delsg'
 
-sg = AwsUtils::Ec2DeleteSecurityGroup.new( ARGV )
+sg = AwsUtils::Ec2DeleteSecurityGroup.new(ARGV)
 sg.run

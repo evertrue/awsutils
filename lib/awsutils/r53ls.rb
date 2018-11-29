@@ -7,7 +7,7 @@ module AwsUtils
   class Route53ListResourceRecord
     def connection
       @connection ||= Fog::DNS::AWS.new
-    end # def connection
+    end
 
     def parse_opts
       opts = Optimist.options do
@@ -15,7 +15,7 @@ module AwsUtils
       end
       opts[:name] = ARGV.last
       opts
-    end # def parse_opts( args )
+    end
 
     def zone
       @zone ||= connection.zones.all('domain' => zone_name).first
@@ -31,7 +31,7 @@ module AwsUtils
 
     def initialize
       @opts = parse_opts
-    end # def initialize( args )
+    end
 
     def display_record(record)
       if @opts[:format] == 'json'
@@ -88,5 +88,5 @@ module AwsUtils
         display_record(record_by_name)
       end
     end
-  end # class Route53AddResourceRecord
-end # module AwsUtils
+  end
+end

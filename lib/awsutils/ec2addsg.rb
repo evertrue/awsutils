@@ -9,7 +9,7 @@ module AwsUtils
       @g_obj ||= begin
         connection.security_groups.new(
           name: @opts[:security_group],
-          description: "#{@opts[:description]}",
+          description: @opts[:description].to_s,
           vpc_id: @opts[:vpc_id]
         )
       end
@@ -18,12 +18,12 @@ module AwsUtils
     def generate_rule_hash(rule)
       if rule['source']
         if rule['dest']
-          fail 'One of the predefined rules has both a source ' \
+          raise 'One of the predefined rules has both a source ' \
             'and a destination already defined: ' + rule.inspect
         end
         if rule['source'] !~ /\./ &&
            !current_groups.include?(rule['source'])
-          fail "Group #{rule['source']} specified as part of rule: " \
+          raise "Group #{rule['source']} specified as part of rule: " \
                "#{rule.inspect} does not exist"
         end
       end
@@ -31,7 +31,7 @@ module AwsUtils
       if !rule['dest']
         rule['dest'] = @new_group_id
       elsif !current_groups.include?(rule['dest'])
-        fail "Group #{rule['dest']} specified as part of rule: " \
+        raise "Group #{rule['dest']} specified as part of rule: " \
              "#{rule.inspect} does not exist"
       end
 
@@ -46,7 +46,7 @@ module AwsUtils
 
       if rule['source'] =~ /\./
         ip_permissions['Groups'] = []
-        ip_permissions['IpRanges'] = [ 'CidrIp' => rule['source'] ]
+        ip_permissions['IpRanges'] = ['CidrIp' => rule['source']]
       elsif rule['source']
         ip_permissions['Groups'] = [
           {
@@ -114,7 +114,7 @@ module AwsUtils
         rules.select { |rule| rule['dest'] }.each do |rule|
           add_rule_to_other_group(rule)
         end
-      rescue => e
+      rescue StandardError => e
         connection.delete_security_group(nil, g_obj.group_id)
         raise e
       end
@@ -133,13 +133,13 @@ module AwsUtils
 
       if @opts[:environment]
         if !rules_data['env']
-          fail "Environment #{@opts[:environment]} not present in rules file" \
+          raise "Environment #{@opts[:environment]} not present in rules file" \
                " (#{@opts[:base_rules_file]})."
         else
           rules_env_data = rules_data['env'][@opts[:environment]]
         end
       elsif rules_data.class != Array
-        fail 'base_rules_file is an environment-keyed file but you did ' \
+        raise 'base_rules_file is an environment-keyed file but you did ' \
           'not specify an environment.'
       else
         rules_env_data = rules_data
@@ -165,7 +165,7 @@ module AwsUtils
     end
 
     def parse_opts
-      fail 'AWS_OWNER_ID is not set!' unless ENV['AWS_OWNER_ID']
+      raise 'AWS_OWNER_ID is not set!' unless ENV['AWS_OWNER_ID']
 
       @opts = Optimist.options do
         opt :security_group,
