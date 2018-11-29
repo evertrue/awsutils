@@ -1,5 +1,5 @@
 require 'optimist'
-require 'aws-sdk'
+require 'aws-sdk-cloudwatchlogs'
 require 'time'
 
 class LogGroupNotFoundError < StandardError; end
