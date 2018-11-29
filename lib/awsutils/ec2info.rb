@@ -76,7 +76,7 @@ module AwsUtils
           exit 1
         end
 
-        puts "Found instances: #{results.inspect}" if $DEBUG
+        puts "Found instances: #{instance_ids.inspect}" if $DEBUG
 
         ec2.servers.all 'instance-id' => instance_ids
       end
