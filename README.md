@@ -24,6 +24,10 @@ awslogs
 -------
 Dumps logs from CloudWatch Logs for easy grepping (see `awslogs --help` for details).
 
+ec2latestimage
+--------------
+Show a list of Ubuntu AMIs owned by your account.
+
 ec2listmachines
 ---------------
 Show a list of all EC2 instances in your account.
