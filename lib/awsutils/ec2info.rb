@@ -51,7 +51,7 @@ module AwsUtils
     # TODO: Naming/MemoizedInstanceVariableName: Memoized variable @instance_ids does
     # not match method name instances.
     def instances
-      @instance_ids ||= begin
+      @instances ||= begin
         if $DEBUG
           puts 'Entering instance_ids'
           puts "Search Term: #{search_terms.inspect}"
@@ -76,7 +76,7 @@ module AwsUtils
           exit 1
         end
 
-        puts "Found instances: #{results.inspect}" if $DEBUG
+        puts "Found instances: #{instance_ids.inspect}" if $DEBUG
 
         ec2.servers.all 'instance-id' => instance_ids
       end
@@ -134,14 +134,12 @@ module AwsUtils
              'Flavor',
              'State')
 
-      instance_ids.each do |instance_id|
-        inst = ec2.servers.get(instance_id)
-
+      instances.each do |inst|
         s_color = get_state_color(inst.state)
         f_color = get_flavor_color(inst.flavor_id)
 
         printf(
-          "%-50s %-11s %-12s %-13s #{f_color}%-10s#{reset_color} #{s_color}%s#{reset_color}",
+          "%-50s %-11s %-12s %-13s #{f_color}%-10s#{reset_color} #{s_color}%s#{reset_color}\n",
           inst.tags['Name'],
           inst.availability_zone,
           inst.id,
